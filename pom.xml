@@ -1,0 +1,279 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+         https://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+    <modelVersion>4.0.0</modelVersion>
+
+    <!-- Родительский проект Spring Boot -->
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.4.5</version>
+        <relativePath/>
+    </parent>
+
+    <!-- Координаты родительского проекта -->
+    <groupId>com.hrachov</groupId>
+    <artifactId>media-buddy-parent</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+    <packaging>pom</packaging>
+
+    <name>MediaBuddy Parent</name>
+    <description>Parent project for MediaBuddy microservices</description>
+
+    <!-- Модули проекта -->
+    <modules>
+        <module>service-main</module>
+        <module>service-history</module>
+        <module>service-compression</module>
+        <module>service-streaming</module>
+    </modules>
+
+    <!-- Общие свойства для всех модулей -->
+    <properties>
+        <java.version>17</java.version>
+        <spring-boot.version>3.4.5</spring-boot.version>
+        <lombok.version>1.18.30</lombok.version>
+        <rabbitmq.version>3.2.5</rabbitmq.version>
+        <rabbitmq.stream.version>0.18.0</rabbitmq.stream.version>
+        <backblaze.version>6.4.0</backblaze.version>
+        <aws.sdk.version>2.31.71</aws.sdk.version>
+        <testcontainers.version>1.21.3</testcontainers.version>
+        <jwt.version>0.12.3</jwt.version>
+        <commons.fileupload.version>1.5</commons.fileupload.version>
+        <commons.io.version>2.16.1</commons.io.version>
+        <jedis.version>5.1.5</jedis.version>
+        <hibernate.version>6.6.11.Final</hibernate.version>
+        <google.api.version>2.7.0</google.api.version>
+        <google.http.version>1.44.2</google.http.version>
+        <google.oauth.version>1.35.0</google.oauth.version>
+        <wiremock.version>3.0.1</wiremock.version>
+        <springdoc.version>2.5.0</springdoc.version>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
+    </properties>
+
+    <!-- Управление версиями зависимостей для всех модулей -->
+    <dependencyManagement>
+        <dependencies>
+            <!-- Spring Boot BOM -->
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-dependencies</artifactId>
+                <version>${spring-boot.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+            <!-- Lombok -->
+            <dependency>
+                <groupId>org.projectlombok</groupId>
+                <artifactId>lombok</artifactId>
+                <version>${lombok.version}</version>
+            </dependency>
+
+            <!-- RabbitMQ Stream -->
+            <dependency>
+                <groupId>org.springframework.amqp</groupId>
+                <artifactId>spring-rabbit-stream</artifactId>
+                <version>${rabbitmq.version}</version>
+            </dependency>
+
+            <!-- RabbitMQ Stream Client -->
+            <dependency>
+                <groupId>com.rabbitmq</groupId>
+                <artifactId>stream-client</artifactId>
+                <version>${rabbitmq.stream.version}</version>
+            </dependency>
+
+            <!-- Backblaze B2 SDK -->
+            <dependency>
+                <groupId>com.backblaze.b2</groupId>
+                <artifactId>b2-sdk-core</artifactId>
+                <version>${backblaze.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.backblaze.b2</groupId>
+                <artifactId>b2-sdk-httpclient</artifactId>
+                <version>${backblaze.version}</version>
+            </dependency>
+
+            <!-- AWS SDK -->
+            <dependency>
+                <groupId>software.amazon.awssdk</groupId>
+                <artifactId>aws-sdk-java</artifactId>
+                <version>${aws.sdk.version}</version>
+            </dependency>
+
+            <!-- JWT -->
+            <dependency>
+                <groupId>io.jsonwebtoken</groupId>
+                <artifactId>jjwt</artifactId>
+                <version>${jwt.version}</version>
+            </dependency>
+
+            <!-- Commons -->
+            <dependency>
+                <groupId>commons-fileupload</groupId>
+                <artifactId>commons-fileupload</artifactId>
+                <version>${commons.fileupload.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>commons-io</groupId>
+                <artifactId>commons-io</artifactId>
+                <version>${commons.io.version}</version>
+            </dependency>
+
+            <!-- Redis -->
+            <dependency>
+                <groupId>redis.clients</groupId>
+                <artifactId>jedis</artifactId>
+                <version>${jedis.version}</version>
+            </dependency>
+
+            <!-- Hibernate -->
+            <dependency>
+                <groupId>org.hibernate.orm</groupId>
+                <artifactId>hibernate-core</artifactId>
+                <version>${hibernate.version}</version>
+            </dependency>
+
+            <!-- Google APIs -->
+            <dependency>
+                <groupId>com.google.api-client</groupId>
+                <artifactId>google-api-client</artifactId>
+                <version>${google.api.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.google.http-client</groupId>
+                <artifactId>google-http-client-jackson2</artifactId>
+                <version>${google.http.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.google.oauth-client</groupId>
+                <artifactId>google-oauth-client-jetty</artifactId>
+                <version>${google.oauth.version}</version>
+            </dependency>
+
+            <!-- Test Dependencies -->
+            <dependency>
+                <groupId>com.github.tomakehurst</groupId>
+                <artifactId>wiremock-jre8-standalone</artifactId>
+                <version>${wiremock.version}</version>
+            </dependency>
+
+            <!-- Testcontainers -->
+            <dependency>
+                <groupId>org.testcontainers</groupId>
+                <artifactId>testcontainers-bom</artifactId>
+                <version>${testcontainers.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+            <!-- OpenAPI -->
+            <dependency>
+                <groupId>org.springdoc</groupId>
+                <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+                <version>${springdoc.version}</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <!-- Общие зависимости для всех модулей -->
+    <dependencies>
+        <!-- Lombok для всех модулей -->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- Spring Boot Test для всех модулей -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <!-- Общие плагины для сборки -->
+    <build>
+        <pluginManagement>
+            <plugins>
+                <!-- Spring Boot Maven Plugin -->
+                <plugin>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-maven-plugin</artifactId>
+                    <configuration>
+                        <excludes>
+                            <exclude>
+                                <groupId>org.projectlombok</groupId>
+                                <artifactId>lombok</artifactId>
+                            </exclude>
+                        </excludes>
+                    </configuration>
+                </plugin>
+
+                <!-- Maven Compiler Plugin -->
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <version>3.11.0</version>
+                    <configuration>
+                        <source>17</source>
+                        <target>17</target>
+                        <annotationProcessorPaths>
+                            <path>
+                                <groupId>org.projectlombok</groupId>
+                                <artifactId>lombok</artifactId>
+                                <version>${lombok.version}</version>
+                            </path>
+                        </annotationProcessorPaths>
+                    </configuration>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+
+    <!-- Профили для различных окружений -->
+    <profiles>
+        <profile>
+            <id>dev</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <properties>
+                <spring.profiles.active>dev</spring.profiles.active>
+            </properties>
+        </profile>
+
+        <profile>
+            <id>prod</id>
+            <properties>
+                <spring.profiles.active>prod</spring.profiles.active>
+            </properties>
+        </profile>
+
+        <profile>
+            <id>test</id>
+            <properties>
+                <spring.profiles.active>test</spring.profiles.active>
+            </properties>
+        </profile>
+    </profiles>
+
+</project>

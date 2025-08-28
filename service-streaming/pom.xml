@@ -2,79 +2,58 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
+
     <parent>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.4.5</version>
-        <relativePath/> <!-- lookup parent from repository -->
+        <groupId>com.hrachov</groupId>
+        <artifactId>media-buddy-parent</artifactId>
+        <version>0.0.1-SNAPSHOT</version>
+        <relativePath>../pom.xml</relativePath>
     </parent>
-    <groupId>com.hrachovBlackBlaze</groupId>
-    <artifactId>BlackBlazeStreamingMicroService</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
+
+    <artifactId>service-streaming</artifactId>
     <name>BlackBlazeStreamingMicroService</name>
-    <description>BlackBlazeStreamingMicroService</description>
-    <url/>
-    <licenses>
-        <license/>
-    </licenses>
-    <developers>
-        <developer/>
-    </developers>
-    <scm>
-        <connection/>
-        <developerConnection/>
-        <tag/>
-        <url/>
-    </scm>
-    <properties>
-        <java.version>17</java.version>
-    </properties>
+    <description>Video streaming microservice using Backblaze B2</description>
+
     <dependencies>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-amqp</artifactId>
-        </dependency>
-        <!--<dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-web</artifactId>
-        </dependency>
-        -->
+        <!-- Spring Boot Starters -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-webflux</artifactId>
         </dependency>
-        <!-- https://mvnrepository.com/artifact/com.backblaze.b2/b2-sdk-core -->
+
         <dependency>
-            <groupId>com.backblaze.b2</groupId>
-            <artifactId>b2-sdk-core</artifactId>
-            <version>6.4.0</version>
-        </dependency>
-        <!-- https://mvnrepository.com/artifact/com.backblaze.b2/b2-sdk-httpclient -->
-        <dependency>
-            <groupId>com.backblaze.b2</groupId>
-            <artifactId>b2-sdk-httpclient</artifactId>
-            <version>6.4.0</version>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-amqp</artifactId>
         </dependency>
 
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-test</artifactId>
-            <scope>test</scope>
+            <artifactId>spring-boot-starter-thymeleaf</artifactId>
         </dependency>
+
+        <!-- Backblaze B2 SDK -->
+        <dependency>
+            <groupId>com.backblaze.b2</groupId>
+            <artifactId>b2-sdk-core</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.backblaze.b2</groupId>
+            <artifactId>b2-sdk-httpclient</artifactId>
+        </dependency>
+
+        <!-- AWS SDK -->
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>aws-sdk-java</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- Test Dependencies -->
         <dependency>
             <groupId>org.springframework.amqp</groupId>
             <artifactId>spring-rabbit-test</artifactId>
             <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-thymeleaf</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>software.amazon.awssdk</groupId>
-            <artifactId>aws-sdk-java</artifactId>
-            <version>2.31.71</version>
-            <scope>provided</scope>
         </dependency>
 
         <dependency>

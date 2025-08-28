@@ -64,16 +64,15 @@ public class NotificationWebSocketController {
     @MessageMapping("/ping")
     @SendToUser("/queue/notifications")
     public Map<String, String> handlePing(Principal principal) {
-        redisTemplate.opsForValue().set("user:" + principal.getName() + ":status", "online", Duration.ofSeconds(20));
-
         Map<String, String> response = new HashMap<>();
-        //Random random = new Random();
-        //int randomInt = random.nextInt(100);
         response.put("type", "PONG");
         response.put("timestamp", Instant.now().toString());
 
         if (principal != null) {
+            redisTemplate.opsForValue().set("user:" + principal.getName() + ":status", "online", Duration.ofSeconds(20));
             logger.debug("Ping received from user: {}", principal.getName());
+        } else {
+            logger.warn("Ping received from unauthenticated user");
         }
 
         return response;
