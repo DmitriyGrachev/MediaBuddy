@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" defer></script>
+    <title>Search</title>
+    <style>
+        /* Скрывает динамические блоки по умолчанию */
+        .dynamic-options {
+            display: none;
+            border-left: 3px solid #0d6efd; /* синяя полоска слева для акцента */
+            padding-left: 10px;
+            margin-left: 5px;
+        }
+    </style>
+</head>
+<body>
+<header>
+    <div th:insert="~{menunavy::navy}"></div>
+</header>
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-lg-3">
+            <div class="card">
+                <div class="card-header">
+                    <h5>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-funnel-fill" viewBox="0 0 16 16">
+                            <path d="M1.5 1.5A.5.5 0 0 1 2 1h12a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-.128.334L10 8.692V13.5a.5.5 0 0 1-.342.474l-3 1.5A.5.5 0 0 1 6 14.5V8.692L1.628 3.834A.5.5 0 0 1 1.5 3.5z"/>
+                        </svg>
+                        Расширенный поиск
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form id="advancedSearchForm">
+                        <div class="mb-3">
+                            <label for="title" class="form-label">Название</label>
+                            <input type="text" class="form-control" id="title" name="title" placeholder="Например, Inception">
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Тип</label>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="filmType" id="typeAll" value="" checked>
+                                <label class="form-check-label" for="typeAll">Все</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="filmType" id="typeMovie" value="movie">
+                                <label class="form-check-label" for="typeMovie">Фильм</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="filmType" id="typeSerial" value="serial">
+                                <label class="form-check-label" for="typeSerial">Сериал</label>
+                            </div>
+                        </div>
+
+                        <div id="movieOptions" class="dynamic-options mb-3">
+                            <label class="form-label">Длительность (мин)</label>
+                            <div class="input-group">
+                                <input type="number" class="form-control" name="durationFrom" placeholder="От">
+                                <input type="number" class="form-control" name="durationTo" placeholder="До">
+                            </div>
+                        </div>
+
+                        <div id="serialOptions" class="dynamic-options mb-3">
+                            <label class="form-label">Кол-во сезонов (от)</label>
+                            <input type="number" class="form-control mb-2" name="numberOfSeasons" placeholder="Например, 3">
+                            <label class="form-label">Кол-во серий (от)</label>
+                            <input type="number" class="form-control" name="totalEpisodes" placeholder="Например, 24">
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Жанры</label>
+                            <div id="genresContainer">
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Год выпуска</label>
+                            <div class="input-group">
+                                <input type="number" class="form-control" name="dateFrom" placeholder="От (1990)">
+                                <input type="number" class="form-control" name="dateTo" placeholder="До (2025)">
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Рейтинг</label>
+                            <div class="input-group">
+                                <input type="number" class="form-control" name="ratingFrom" step="0.1" placeholder="От (7.5)">
+                                <input type="number" class="form-control" name="ratingTo" step="0.1" placeholder="До (9.5)">
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="sort" class="form-label">Сортировать по</label>
+                            <select class="form-select" id="sort" name="sort">
+                                <option value="">Без сортировки</option>
+                                <option value="rating">Рейтингу</option>
+                                <option value="popularity">Популярности</option>
+                            </select>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary">Найти</button>
+                            <button type="reset" class="btn btn-outline-secondary">Сбросить</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-9">
+            <h3>Результаты поиска</h3>
+            <hr>
+            <div id="resultsContainer" class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-4">
+                <div class="col"><p class="text-muted">Используйте фильтры слева, чтобы начать поиск.</p></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="/js/filmSearch.js"></script>
+</body>
+</html>

@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Фрагменты для боковой панели и контента</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        /* Стили для боковой панели - Оставляем только внутренние стили */
+        .movie-sidebar {
+            background-color: #f8f9fa; /* Оставляем фоновый цвет */
+            overflow-y: auto; /* Оставляем прокрутку, если содержимое длинное */
+            padding: 10px 5px; /* Оставляем внутренние отступы */
+            border-right: 1px solid #dee2e6; /* Оставляем рамку, если нужна */
+            /* Удаляем стили позиционирования и размеров, которые теперь управляются Bootstrap Grid */
+            /* position: fixed; */
+            /* left: 0; */
+            /* top: 60px; */
+            /* width: 100px; */
+            /* z-index: 1000; */
+            /* height: calc(100vh - 60px); */
+        }
+
+        .movie-poster {
+            margin-bottom: 10px;
+            border-radius: 4px;
+            overflow: hidden;
+            transition: transform 0.2s;
+            cursor: pointer;
+        }
+
+        .movie-poster:hover {
+            transform: scale(1.05);
+        }
+
+        .movie-poster img {
+            width: 100%;
+            height: auto;
+            object-fit: cover;
+        }
+
+        /* Стиль для основного контента - Удаляем отступы, управляемые Grid */
+        .main-content {
+            /* margin-left: 110px; */
+            /* margin-top: 60px; */ /* Удаляем, если было в template */
+            padding: 0 15px; /* Оставляем внутренние отступы, можно скорректировать */
+        }
+
+        /* Адаптивность - Медиа-запрос для боковой панели теперь менее критичен, т.к. используется Bootstrap d-none/d-md-block */
+        /* Но если sidebar не полностью скрывается на мобильных, убедитесь, что его ширина не мешает */
+        @media (max-width: 768px) {
+            /* .movie-sidebar display: none; уже управляется Bootstrap классами в HTML */
+            /* main-content margin-left: 0; теперь не требуется, т.к. колонки стекуются */
+        }
+    </style>
+</head>
+<body>
+<div th:fragment="sidebar" class="movie-sidebar">
+    <div id="top-movies-container">
+        <div class="d-flex justify-content-center">
+            <div class="spinner-border spinner-border-sm text-primary" role="status">
+                <span class="visually-hidden">Загрузка...</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div th:fragment="main-content" class="main-content">
+</div>
+
+<script th:fragment="movie-loader">
+    async function loadTop5NewFilms() {
+        // Ваш код загрузки новинок
+        try {
+            const moviesContainer = document.getElementById('top-movies-container');
+            if (!moviesContainer) {
+                console.error('Контейнер для топ-фильмов не найден.');
+                return;
+            }
+
+            const apiResponse = await fetch('/api/films/newFilms');
+            if (!apiResponse.ok) {
+                console.error(`Ошибка получения новых фильмов: ${apiResponse.status}`);
+                moviesContainer.innerHTML = '<div class="alert alert-danger small p-1">Ошибка загрузки</div>';
+                return;
+            }
+
+            const filmsData = await apiResponse.json();
+            const top5Films = filmsData.slice(0, 5);
+            moviesContainer.innerHTML = '';
+
+            top5Films.forEach(film => {
+
+                const posterHtml = `
+                        <a href="/${film.type}/${film.id}" class="movie-poster d-block">
+                            <img src="${film.poster || '/images/no-poster.jpg'}"
+                                 alt="${film.title || 'Фильм'}"
+                                 class="img-fluid"
+                                 title="${film.title || 'Фильм'}">
+                        </a>
+                    `;
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = posterHtml;
+                moviesContainer.appendChild(tempDiv.firstElementChild);
+            });
+        } catch (error) {
+            console.error('Ошибка загрузки данных:', error);
+            const moviesContainer = document.getElementById('top-movies-container');
+            if (moviesContainer) {
+                moviesContainer.innerHTML = '<div class="alert alert-danger small p-1">Ошибка загрузки</div>';
+            }
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', loadTop5NewFilms);
+</script>
+</body>
+</html>

@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Профиль пользователя</title>
+    <style>
+        body { font-family: sans-serif; margin: 20px; background-color: #f4f4f4; }
+        .card { background-color: #fff; border-radius: 8px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .container { background-color: #fff; border-radius: 8px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        h2 { color: #333; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+        p { line-height: 1.6; color: #555; }
+        .comment { border: 1px solid #ddd; padding: 10px; margin-bottom: 10px; border-radius: 4px; background-color: #f9f9f9; }
+        .comment p { margin: 5px 0; }
+        .pagination { margin-top: 15px; }
+        .pagination button { padding: 8px 12px; margin: 0 5px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        .pagination button:disabled { background-color: #ccc; cursor: not-allowed; }
+        .error-message { color: red; font-weight: bold; }
+        #loading { text-align: center; font-size: 1.2em; padding: 20px; }
+        .history-card {
+            display: flex;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            overflow: hidden;
+            transition: transform 0.2s;
+        }
+
+        .history-card:hover {
+            transform: scale(1.02);
+        }
+
+        .history-link {
+            text-decoration: none;
+            color: inherit;
+            display: block;
+        }
+
+        .history-card-content {
+            display: flex;
+            align-items: center;
+        }
+
+        .history-poster {
+            width: 100px;
+            height: 150px;
+            object-fit: cover;
+            margin-right: 15px;
+        }
+
+        .history-details {
+            padding: 10px;
+        }
+
+        .history-details h3 {
+            margin: 0 0 10px 0;
+            font-size: 1.2em;
+        }
+
+        .history-details p {
+            margin: 5px 0;
+            color: #555;
+        }
+
+        .error-message {
+            color: red;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+<h1>Профиль пользователя</h1>
+
+<div id="loading">Загрузка данных...</div>
+<div id="errorMessage" class="error-message" style="display:none;"></div>
+
+<div class="card" id="upperProfile" style="display:none;">
+    <h2>Основная информация</h2>
+</div>
+
+<div class="container" id="commentHistoryContainer" style="display:none;">
+    <h2>История комментариев</h2>
+    <div id="commentHistory">
+    </div>
+    <div class="pagination" id="commentPagination">
+    </div>
+</div>
+
+<div class="container" id="filmHistoryContainer" style="display:none;">
+    <h2>История просмотров фильмов</h2>
+    <div id="filmHistory">
+        <p>Информация об истории просмотров будет доступна позже.</p>
+    </div>
+</div>
+<div class="container" id="favoritesContainer" style="display:none;">
+    <h2>Избранное</h2>
+    <div id="favoritesHistory">
+        Пока что пусто
+    </div>
+    <div class="pagination" id="favoritesPagination">
+
+    </div>
+</div>
+<div class="container" id="recommendationsContainer" style="display: none">
+    <h2>Рекомендации</h2>
+    <div id="recommendationsList">
+        Пока что пусто
+    </div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function (){
+        const upperProfileDiv = document.getElementById("upperProfile");
+        const commentHistoryDiv = document.getElementById("commentHistory");
+        const filmHistoryDiv = document.getElementById("filmHistory"); // Пока не используется активно
+        const commentPaginationDiv = document.getElementById("commentPagination");
+
+        const commentHistoryContainer = document.getElementById("commentHistoryContainer");
+        const filmHistoryContainer = document.getElementById("filmHistoryContainer");
+
+        const favoritesContainer = document.getElementById("favoritesContainer");
+        const favoritesHistory = document.getElementById("favoritesHistory");
+        const favoritesHistoryPagination = document.getElementById("favoritesPagination");
+
+        const recommendationsContainer = document.getElementById("recommendationsContainer");
+        const recommendationsList = document.getElementById("recommendationsList");
+
+        const loadingDiv = document.getElementById("loading");
+        const errorMessageDiv = document.getElementById("errorMessage");
+
+        const token = sessionStorage.getItem("token");
+
+        //let currentUserId = null;
+        let commentsCurrentPage = 0; // API использует 0-индексацию для страниц
+        const commentsPageSize = 5;
+        let commentsTotalPages = 0;
+
+        let favoriteCurrenPage = 0;
+        let favoritesTotalPages = 0;
+        const favoritesPageSize = 6;
+
+
+        if (!token) {
+            sessionStorage.removeItem("token");
+            window.location.href = "/authfront/login";
+            handleError("Токен авторизации не найден. Пожалуйста, войдите в систему.");
+            // Можно добавить редирект на страницу логина:
+            // window.location.href = '/login.html'; // Пример
+            return;
+        }
+
+        function handleError(message, error) {
+            console.error(message, error || '');
+            loadingDiv.style.display = "none";
+            errorMessageDiv.textContent = "Ошибка: " + message + (error ? ". Пожалуйста, проверьте консоль для деталей." : "");
+            errorMessageDiv.style.display = "block";
+            // Скрываем остальные блоки, чтобы не показывать неполные данные
+            upperProfileDiv.style.display = "none";
+            commentHistoryContainer.style.display = "none";
+            filmHistoryContainer.style.display = "none";
+        }
+
+        async function fetchUserProfile() {
+            try {
+                const response = await fetch(`/api/user/profile`, {
+                    method: "GET",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${token}`
+                    }
+                });
+
+                if (!response.ok) {
+                    if (response.status === 401 || response.status === 403) {
+                        sessionStorage.removeItem("token");
+                        window.location.href = "/authfront/login";
+                        return null;
+                    }
+                    throw new Error(`Ошибка при загрузке профиля: ${response.status} ${response.statusText}`);
+                }
+
+                const user = await response.json();
+                currentUserId = user.id; // Сохраняем ID пользователя
+                displayUserProfile(user);
+                // После успешной загрузки профиля, загружаем комментарии
+                await fetchUserComments(currentUserId, commentsCurrentPage);
+                await fetchFavoritesHistory(currentUserId, favoriteCurrenPage);
+            } catch (error) {
+                handleError(error.message, error);
+            }
+        }
+
+        function displayUserProfile(user) {
+            upperProfileDiv.innerHTML = `
+                    <p><strong>ID:</strong> ${user.id}</p>
+                    <p><strong>Имя пользователя:</strong> ${user.username}</p>
+                    <p><strong>Email:</strong> ${user.email}</p>
+                    <p><strong>Имя:</strong> ${user.firstName || 'Не указано'}</p>
+                    <p><strong>Фамилия:</strong> ${user.lastName || 'Не указано'}</p>
+                    <p><strong>Дата регистрации:</strong> ${new Date(user.registrationDate).toLocaleString()}</p>
+                `;
+            upperProfileDiv.style.display = "block";
+        }
+
+        async function fetchUserComments(userId, page = 0, size = commentsPageSize, sort = 'time,desc') {
+            if (!userId) {
+                handleError("ID пользователя не определен для загрузки комментариев.");
+                return;
+            }
+            // Перед новым запросом показываем индикатор загрузки для комментариев (если нужно)
+            commentHistoryDiv.innerHTML = "<p>Загрузка комментариев...</p>";
+
+            try {
+                const response = await fetch(`/api/user/comments?id=${userId}&page=${page}&size=${size}&sort=${sort}`, {
+                    method: "GET",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${token}`
+                    }
+                });
+
+                if (!response.ok) {
+                    if (response.status === 404) {
+                        throw new Error(`Пользователь с ID ${userId} не найден для комментариев.`);
+                    }
+                    throw new Error(`Ошибка при загрузке комментариев: ${response.status} ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                displayComments(data.content);
+                commentsCurrentPage = data.number; // page в Spring Pageable 0-индексированный
+                commentsTotalPages = data.totalPages;
+                setupCommentPagination();
+                commentHistoryContainer.style.display = "block";
+
+            } catch (error) {
+                handleError("Не удалось загрузить комментарии: " + error.message, error);
+                commentHistoryDiv.innerHTML = `<p class="error-message">Не удалось загрузить комментарии.</p>`;
+            }
+        }
+        async function fetchFavoritesHistory(userId, page = 0, size = favoritesPageSize,sort = 'date,desc'){
+            if(!userId){
+                handleError("ID пользователя не определен для загрузки избранного.");
+                return;
+            }
+            favoritesHistory.innerHTML = "<p>Загрузка избранного...</p>";
+            try{
+                const response = await fetch(`/api/user/favorites?id=${userId}&page=${page}&size=${size}&sort=${sort}`, {
+                    method: "GET",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${token}`
+                    }
+                    });
+                if (!response.ok) {
+                    if (response.status === 404) {
+                        throw new Error(`Пользователь с ID ${userId} не найден для избранного.`);
+                    }
+                    throw new Error(`Ошибка при загрузке избранного: ${response.status} ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                displayFavorites(data.content);
+                favoriteCurrenPage = data.number; // page в Spring Pageable 0-индексированный
+                favoritesTotalPages = data.totalPages;
+                setUpFavoritesPagination();
+                favoritesContainer.style.display = "block";
+            }catch(error){
+                handleError("Не удалось загрузить избранное: " + error.message, error);
+                commentHistoryDiv.innerHTML = `<p class="error-message">Не удалось загрузить избранное.</p>`;
+            }
+        }
+
+        function displayComments(comments) {
+            commentHistoryDiv.innerHTML = ""; // Очищаем предыдущие комментарии
+            if (comments && comments.length > 0) {
+                comments.forEach(comment => {
+                    const commentElement = document.createElement("div");
+                    commentElement.classList.add("comment");
+                    commentElement.innerHTML = `
+                            <p><strong>ID комментария:</strong> ${comment.id}</p>
+                            <p><strong>Текст:</strong> ${comment.text}</p>
+                            <p><strong>ID фильма:</strong> ${comment.filmId}</p>
+                        `;
+                    commentHistoryDiv.appendChild(commentElement);
+                });
+            } else {
+                commentHistoryDiv.innerHTML = "<p>Комментарии отсутствуют.</p>";
+            }
+        }
+        function displayFavorites(favorites){
+            favoritesHistory.innerHTML = "";
+            if(favorites && favorites.length > 0){
+                favorites.forEach(favorite =>{
+                    const favoriteElement = document.createElement("div");
+                    favoriteElement.classList.add("favorite");
+                    favoriteElement.innerHTML = `
+                    <p><strong> FILM ID:<strong>${favorite.filmId}</p>
+                    <p><strong> TYPE:<strong>${favorite.type}</p>
+                    <p><strong> DATE:<strong>${favorite.date}</p>
+                    `;
+                    favoritesHistory.appendChild(favoriteElement);
+                });
+            }else{
+                favoritesHistory.innerHTML="<p>Избранного еще нет</p>";
+            }
+        }
+
+        function setupCommentPagination() {
+            commentPaginationDiv.innerHTML = ""; // Очищаем старые кнопки
+
+            if (commentsTotalPages <= 1) return; // Не показываем пагинацию для одной страницы
+
+            const prevButton = document.createElement("button");
+            prevButton.textContent = "Назад";
+            prevButton.disabled = commentsCurrentPage === 0;
+            prevButton.addEventListener("click", () => {
+                if (commentsCurrentPage > 0) {
+                    fetchUserComments(currentUserId, commentsCurrentPage - 1);
+                }
+            });
+
+            const nextButton = document.createElement("button");
+            nextButton.textContent = "Вперед";
+            nextButton.disabled = commentsCurrentPage >= commentsTotalPages - 1;
+            nextButton.addEventListener("click", () => {
+                if (commentsCurrentPage < commentsTotalPages - 1) {
+                    fetchUserComments(currentUserId, commentsCurrentPage + 1);
+                }
+            });
+
+            const pageInfo = document.createElement("span");
+            pageInfo.textContent = ` Страница ${commentsCurrentPage + 1} из ${commentsTotalPages} `; // +1 для отображения пользователю (1-индексация)
+
+            commentPaginationDiv.appendChild(prevButton);
+            commentPaginationDiv.appendChild(pageInfo);
+            commentPaginationDiv.appendChild(nextButton);
+        }
+        function setUpFavoritesPagination(){
+            favoritesHistoryPagination.innerHTML = "";
+
+            if(favoritesTotalPages <= 1) return;
+
+            const prevButton = document.createElement("button");
+            prevButton.textContent = "Назад";
+            prevButton.disabled = favoriteCurrenPage === 0;
+            prevButton.addEventListener("click", () => {
+                if (favoriteCurrenPage > 0) {
+                    fetchUserComments(currentUserId, favoriteCurrenPage - 1);
+                }
+            });
+
+            const nextButton = document.createElement("button");
+            nextButton.textContent = "Вперед";
+            nextButton.disabled = favoriteCurrenPage >= favoritesTotalPages - 1;
+            nextButton.addEventListener("click", () => {
+                if (favoriteCurrenPage < favoritesTotalPages - 1) {
+                    fetchUserComments(currentUserId, favoriteCurrenPage + 1);
+                }
+            });
+
+            const pageInfo = document.createElement("span");
+            pageInfo.textContent = ` Страница ${favoriteCurrenPage + 1} из ${favoritesTotalPages} `; // +1 для отображения пользователю (1-индексация)
+
+            favoritesHistoryPagination.appendChild(prevButton);
+            favoritesHistoryPagination.appendChild(pageInfo);
+            favoritesHistoryPagination.appendChild(nextButton);
+        }
+
+        async function showFilmHistoryPlaceholder() {
+            try {
+                const token = sessionStorage.getItem("token");
+                const response = await fetch(`/api/watch/history`, {
+                    method: "GET",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${token}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Ошибка при загрузке истории просмотров: ${response.status} ${response.statusText}`);
+                }
+
+                const filmHistory = await response.json();
+                displayFilmHistory(filmHistory);
+                filmHistoryContainer.style.display = "block"; // Показываем контейнер после успешной загрузки
+
+            } catch (error) {
+                console.error("Ошибка в showFilmHistoryPlaceholder:", error);
+                filmHistoryDiv.innerHTML = `<p class="error-message">Не удалось загрузить историю просмотров: ${error.message}</p>`;
+                filmHistoryContainer.style.display = "block"; // Показываем контейнер с ошибкой
+            }
+        }
+
+        function displayFilmHistory(filmHistory) {
+            filmHistoryDiv.innerHTML = ""; // Очищаем контейнер
+            if (filmHistory && filmHistory.length > 0) {
+                filmHistory.forEach(history => {
+                    const historyElement = document.createElement("div");
+                    historyElement.classList.add("history-card");
+
+                    // Определяем ссылку в зависимости от типа
+                    const link = history.type === "movie" ? `/movie/${history.filmId}` : `/serial/${history.filmId}`;
+
+                    // Форматируем дату
+                    const formattedDate = new Date(history.date).toLocaleDateString("ru-RU", {
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit"
+                    });
+
+                    historyElement.innerHTML = `
+                <a href="${link}" class="history-link">
+                    <div class="history-card-content">
+                        <img src="${history.posterUrl || '/placeholder.jpg'}" alt="${history.title || 'Неизвестный контент'}" class="history-poster">
+                        <div class="history-details">
+                            <h3>${history.title || 'Неизвестный контент'}</h3>
+                            <p><strong>Дата просмотра:</strong> ${formattedDate}</p>
+                            <p><strong>Тип:</strong> ${history.type === 'movie' ? 'Фильм' : 'Сериал'}</p>
+                        </div>
+                    </div>
+                </a>
+            `;
+                    filmHistoryDiv.appendChild(historyElement);
+                });
+            } else {
+                filmHistoryDiv.innerHTML = "<p>История просмотров отсутствует</p>";
+            }
+        }
+        async function showRecommendations() {
+            try {
+                const token = sessionStorage.getItem("token");
+                const response = await fetch(`/api/watch/recommendations`, {
+                    method: "GET",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${token}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Ошибка при загрузке истории просмотров: ${response.status} ${response.statusText}`);
+                }
+
+                const recommendations = await response.json();
+                displayRecommendations(recommendations);
+                recommendationsContainer.style.display = "block"; // Показываем контейнер после успешной загрузки
+
+            } catch (error) {
+                console.error("Ошибка в showFilmHistoryPlaceholder:", error);
+                recommendationsList.innerHTML = `<p class="error-message">Не удалось загрузить Рекомендации: ${error.message}</p>`;
+                recommendationsContainer.style.display = "block"; // Показываем контейнер с ошибкой
+            }
+        }
+        function displayRecommendations(recommendations){
+            recommendationsList.innerHTML = "";
+            if(recommendations && recommendations.length > 0){
+                recommendations.forEach(recommendation => {
+                    const recommendationElement = document.createElement("div");
+                    //TODO FOR NOW USE HISTORY CARDS FOR RECOMMENDATIONS
+                    recommendationElement.classList.add("history-card");
+                    const link = recommendation.type === "movie" ? `/movie/${recommendation.filmId}` : `/serial/${recommendation.filmId}`;
+                    recommendationElement.innerHTML = `
+                    <a href="${link}" class="history-link">
+                    <div class="history-card-content">
+                    <img src="${recommendation.posterUrl}" alt="${recommendation.title}" class="history-poster">
+                    <h3>${recommendation.title || 'Неизвестный контент'}</h3>
+                    <p><strong>Тип:</strong> ${recommendation.type === 'movie' ? 'Фильм' : 'Сериал'}</p>
+                    </div>` ;
+
+                    recommendationsList.appendChild(recommendationElement);
+                })
+            }else{
+                recommendationsList.innerHTML = "<p>Рекомендации сгенирируються позже</p>>"
+            }
+        }
+
+
+        // --- Инициализация ---
+        async function initializePage() {
+            await fetchUserProfile(); // Загружаем профиль, это также вызовет загрузку комментариев
+            await showFilmHistoryPlaceholder(); // Показываем заглушку для истории фильмов
+            await showRecommendations();
+            // После всех загрузок (успешных или с ошибкой, которая обработается) скрываем общий индикатор загрузки
+            loadingDiv.style.display = "none";
+        }
+
+        initializePage();
+    });
+</script>
+</body>
+</html>
+

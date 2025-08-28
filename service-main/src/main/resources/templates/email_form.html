@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>MediaBuddy - Запрос сброса пароля</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <style>
+        /* Общие стили (как описано выше) */
+        body { background-color: #141414; color: #ffffff; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
+        .form-container { max-width: 450px; width: 100%; padding: 40px; background-color: rgba(0, 0, 0, 0.80); border-radius: 4px; box-shadow: 0 0 15px rgba(0, 0, 0, 0.7); }
+        .logo { text-align: center; margin-bottom: 30px; font-size: 2.5rem; font-weight: bold; color: #e50914; }
+        .form-title { color: #fff; font-weight: 500; margin-bottom: 20px; text-align: center; }
+        .form-control { background-color: #333; border: 1px solid #333; color: #fff; height: 50px; margin-bottom: 20px; border-radius: 4px; }
+        .form-control:focus { background-color: #454545; color: #fff; box-shadow: 0 0 0 0.2rem rgba(229, 9, 20, 0.25); border-color: #555; }
+        .form-control::placeholder { color: #8c8c8c; }
+        .btn-custom { background-color: #e50914; color: white; border: none; height: 50px; font-weight: bold; font-size: 1rem; border-radius: 4px; width: 100%; margin-top: 10px; }
+        .btn-custom:hover, .btn-custom:focus { background-color: #f40612; color: white; }
+        .error-message { background-color: rgba(229, 9, 20, 0.1); border-left: 4px solid #e50914; padding: 12px; margin-top: 15px; margin-bottom: 15px; color: #fff; font-size: 0.9rem; border-radius: 0 4px 4px 0; display: none; }
+        .input-group-text { background-color: #333; border: 1px solid #333; color: #8c8c8c; }
+        .input-group .bi { color: #8c8c8c; }
+        .form-text a { color: #b3b3b3; text-decoration: none; }
+        .form-text a:hover { text-decoration: underline; color: #fff;}
+    </style>
+</head>
+<body>
+<div class="form-container">
+    <div class="logo">MediaBuddy</div>
+    <h2 class="form-title">Сброс пароля</h2>
+    <p class="text-center mb-4" style="color: #b3b3b3;">Введите ваш email, и мы отправим вам код для сброса пароля.</p>
+
+    <form id="send-code-form">
+        <div class="mb-3">
+            <div class="input-group">
+                    <span class="input-group-text">
+                        <i class="bi bi-envelope-fill"></i>
+                    </span>
+                <input type="email" class="form-control" id="email" placeholder="Email" required>
+            </div>
+        </div>
+
+        <button type="submit" class="btn btn-custom w-100">Отправить код</button>
+
+        <div id="error-message" class="error-message mt-3"></div>
+        <div id="success-message" class="alert alert-success mt-3" style="display: none;"></div>
+    </form>
+    <div class="text-center mt-3">
+        <p class="form-text"><a href="/authfront/login">Вернуться к входу</a></p>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    document.getElementById("send-code-form").addEventListener("submit", async function (e) {
+        e.preventDefault();
+
+        const email = document.getElementById("email").value;
+        const errorMessageElement = document.getElementById("error-message");
+        const successMessageElement = document.getElementById("success-message");
+        const submitButton = this.querySelector('button[type="submit"]');
+
+        errorMessageElement.style.display = "none";
+        errorMessageElement.textContent = "";
+        successMessageElement.style.display = "none";
+        successMessageElement.textContent = "";
+        submitButton.disabled = true;
+        submitButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Отправка...';
+
+
+        try {
+            // URL для отправки запроса на получение кода (совпадает с AuthController)
+            const response = await fetch(`/api/auth/send-email?email=${encodeURIComponent(email)}`, {
+                method: "POST",
+                // headers: { "Content-Type": "application/json" } // Для POST с @RequestParam без тела обычно не нужен Content-Type: application/json
+            });
+
+            if (response.ok) {
+                successMessageElement.textContent = "Код для сброса пароля успешно отправлен на ваш email.";
+                successMessageElement.style.display = "block";
+                // Перенаправление на форму ввода кода с передачей email в URL
+                setTimeout(() => {
+                    // ИСПРАВЛЕННЫЙ URL для редиректа (соответствует MainController @GetMapping("/reset_password_form"))
+                    window.location.href = `/reset_password_form?email=${encodeURIComponent(email)}`;
+                }, 2000);
+            } else {
+                let errorText = "Не удалось отправить код."; // Сообщение по умолчанию
+                try {
+                    const errorData = await response.json();
+                    if (errorData && typeof errorData === 'object' && errorData.message) {
+                        errorText = errorData.message;
+                    } else if (errorData && typeof errorData === 'string') {
+                        errorText = errorData;
+                    } else {
+                        const textResponse = await response.text();
+                        if (textResponse) errorText = textResponse;
+                    }
+                } catch (e) {
+                    const textResponse = await response.text().catch(() => "Не удалось получить детали ошибки от сервера.");
+                    if (textResponse) errorText = textResponse;
+                    else errorText = `Ошибка ${response.status}: ${response.statusText || "Не удалось обработать ответ сервера."}`;
+                }
+                errorMessageElement.textContent = errorText || "Пользователя с таким email не существует или произошла ошибка сервера.";
+                errorMessageElement.style.display = "block";
+                submitButton.disabled = false;
+                submitButton.innerHTML = 'Отправить код';
+            }
+        } catch (error) {
+            console.error("Ошибка сети при отправке кода:", error);
+            errorMessageElement.textContent = "Ошибка сети или сервера. Пожалуйста, попробуйте позже.";
+            errorMessageElement.style.display = "block";
+            submitButton.disabled = false;
+            submitButton.innerHTML = 'Отправить код';
+        }
+    });
+</script>
+</body>
+</html>

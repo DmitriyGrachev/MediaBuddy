@@ -1,0 +1,22 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>OAuth2 Success</title>
+</head>
+<body>
+  <script>
+    // В URL: /oauth2/success?token=JWT_ТОКЕН
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get("token");
+    if (token) {
+      sessionStorage.setItem("token", token);
+      // После сохранения — редирект на главную
+      window.location.href = "/";
+    } else {
+      document.body.innerText = "Authentication failed.";
+    }
+  </script>
+</body>
+</html>

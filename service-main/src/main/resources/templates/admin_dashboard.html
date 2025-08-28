@@ -1,0 +1,1299 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <style>
+    :root { --sidebar-bg: linear-gradient(135deg, #667eea 0%, #764ba2 100%); --main-bg: #f8f9fa; }
+    body { background-color: var(--main-bg); }
+    .sidebar { min-height: 100vh; background: var(--sidebar-bg); }
+    .nav-link { color: rgba(255, 255, 255, 0.8) !important; transition: all 0.3s ease; }
+    .nav-link:hover, .nav-link.active { color: white !important; background-color: rgba(255, 255, 255, 0.1); border-radius: 8px; }
+    .main-content { min-height: 100vh; }
+    .card { border: none; box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075); }
+    .search-section, .add-film-section { background: white; padding: 1.5rem; border-radius: 8px; margin-bottom: 1.5rem; }
+    .user-blocked { background-color: #ffebee !important; }
+    .content-section { display: none; }
+    .content-section.active { display: block; }
+    .modal-content { border-radius: 12px; }
+    .stats-card { border-left: 4px solid; }
+    .stats-total { border-left-color: #0d6efd; }
+    .stats-blocked { border-left-color: #dc3545; }
+    .stats-active { border-left-color: #198754; }
+    .season-card { margin-bottom: 1rem; border: 1px solid #e0e0e0; border-radius: 8px; }
+    .episode-list { list-style: none; padding-left: 0; }
+    .episode-item { display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0; border-bottom: 1px dashed #eee; }
+    .episode-item:last-child { border-bottom: none; }
+  </style>
+</head>
+<body>
+<header>
+  <div th:insert="~{menunavy::navy}"></div>
+</header>
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-md-3 col-lg-2 px-0">
+      <div class="sidebar d-flex flex-column p-3">
+        <h4 class="text-white mb-4"><i class="bi bi-shield-check"></i> Admin Panel</h4>
+        <ul class="nav nav-pills flex-column mb-auto" id="admin-nav">
+          <li class="nav-item"><a href="#" class="nav-link active" data-section="users-section"><i class="bi bi-people"></i> Пользователи</a></li>
+          <li class="nav-item"><a href="#" class="nav-link" data-section="add-content-section"><i class="bi bi-plus-circle"></i> Добавить контент</a></li>
+          <li class="nav-item"><a href="#" class="nav-link" data-section="manage-content-section"><i class="bi bi-collection-play"></i> Управление контентом</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="col-md-9 col-lg-10">
+      <div class="main-content p-4">
+        <div id="users-section" class="content-section active">
+          <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>Управление пользователями</h2>
+            <button class="btn btn-primary" onclick="loadUsers(webSocketManager)"><i class="bi bi-arrow-clockwise"></i> Обновить</button>
+          </div>
+          <div class="row mb-4" id="statsSection">
+            <div class="col-md-4"><div class="card stats-card stats-total"><div class="card-body"><h5 class="card-title">Всего пользователей</h5><h3 class="text-primary" id="totalUsers">0</h3></div></div></div>
+            <div class="col-md-4"><div class="card stats-card stats-blocked"><div class="card-body"><h5 class="card-title">Заблокированных</h5><h3 class="text-danger" id="blockedUsers">0</h3></div></div></div>
+            <div class="col-md-4"><div class="card stats-card stats-active"><div class="card-body"><h5 class="card-title">Активных</h5><h3 class="text-success" id="activeUsers">0</h3></div></div></div>
+          </div>
+          <div class="search-section"><div class="row"><div class="col-md-8"><div class="input-group"><input type="text" class="form-control" id="searchInput" placeholder="Поиск по имени пользователя или email..."><button class="btn btn-outline-secondary" onclick="searchUser()"><i class="bi bi-search"></i></button></div></div><div class="col-md-4"><button class="btn btn-secondary wator w-100" onclick="clearSearch()"><i class="bi bi-x-circle"></i> Очистить</button></div></div></div>
+          <div class="text-center" id="loadingIndicator" style="display: none;"><div class="spinner-border text-primary" role="status"></div></div>
+          <div class="card"><div class="card-body"><div class="table-responsive"><table class="table table-hover" id="usersTable"><thead class="table-dark"><tr>
+            <th>ID</th>
+            <th>Имя</th>
+            <th>Username</th>
+            <th>Email</th>
+            <th>Роли</th>
+            <th>Статус</th>
+            <th>Онлайн</th>
+            <th>Действия</th>
+          </tr></thead><tbody id="usersTableBody"></tbody></table></div></div></div>
+        </div>
+
+        <div id="add-content-section" class="content-section">
+          <h2 class="mb-4">Добавить Фильм или Сериал</h2>
+          <div class="add-film-section">
+            <div class="row g-3 align-items-center">
+              <div class="col-md-8"><input type="text" class="form-control" id="omdbTitle" placeholder="Название для поиска на OMDB"></div>
+              <div class="col-md-4"><button class="btn btn-info w-100" onclick="fetchFromOMDB()"><i class="bi bi-cloud-download"></i> Fetch from OMDB <span id="fetchSpinner" class="spinner-border spinner-border-sm ms-2" style="display: none;"></span></button></div>
+            </div>
+          </div>
+          <div class="card"><div class="card-body">
+            <form id="addFilmForm">
+              <input type="hidden" id="addFilmId">
+              <input type="hidden" id="addFilmType">
+              <div class="row">
+                <div class="col-md-8 mb-3"><label class="form-label">Название</label><input type="text" class="form-control" id="addTitle"></div>
+                <div class="col-md-4 mb-3"><label class="form-label">Год релиза</label><input type="number" class="form-control" id="addReleaseYear"></div>
+              </div>
+              <div class="mb-3"><label class="form-label">Описание</label><textarea class="form-control" id="addDescription" rows="3"></textarea></div>
+              <div class="row">
+                <div class="col-md-6 mb-3"><label class="form-label">Режиссер</label><input type="text" class="form-control" id="addDirector"></div>
+                <div class="col-md-6 mb-3"><label class="form-label">Рейтинг (IMDB)</label><input type="number" step="0.1" class="form-control" id="addRating"></div>
+              </div>
+              <div id="add-movie-fields" class="form-section-specific row" style="display: none;">
+                <div class="col-md-6 mb-3"><label class="form-label">Продолжительность (мин)</label><input type="number" class="form-control" id="addDuration"></div>
+                <div class="col-md-6 mb-3"><label class="form-label">Source файла</label><input type="text" class="form-control" id="addSource" placeholder="Введите путь к файлу, например, /films/movie.mp4"></div>
+              </div>
+              <div id="add-serial-fields" class="form-section-specific" style="display: none;">
+                <div class="row">
+                  <div class="col-md-6 mb-3"><label class="form-label">Количество сезонов</label><input type="number" class="form-control" id="addSeasons"></div>
+                </div>
+              </div>
+              <div class="mb-3"><label class="form-label">Movie/Serial</label><input type="text" class="form-control" id="addType"></div>
+              <div class="mb-3"><label class="form-label">URL Постера</label><input type="text" class="form-control" id="addPoster"></div>
+              <div class="mb-3"><label class="form-label">Жанры (через запятую)</label><input type="text" class="form-control" id="addGenres" placeholder="например, Action, Comedy, Drama"></div>
+              <div class="d-flex justify-content-end">
+                <button type="button" class="btn btn-secondary me-2" onclick="clearFilmForm('add')">Очистить</button>
+                <button type="button" class="btn btn-primary" onclick="saveNewFilm()"><i class="bi bi-save"></i> Сохранить</button>
+              </div>
+            </form>
+          </div></div>
+        </div>
+
+        <div id="manage-content-section" class="content-section">
+          <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>Управление контентом</h2>
+            <button class="btn btn-primary" onclick="loadAllFilms()"><i class="bi bi-arrow-clockwise"></i> Обновить</button>
+          </div>
+          <div class="card"><div class="card-body"><div class="table-responsive">
+            <table class="table table-hover">
+              <thead class="table-dark"><tr><th>ID</th><th>Название</th><th>Тип</th><th>Год</th><th>Действия</th></tr></thead>
+              <tbody id="filmsTableBody"></tbody>
+            </table>
+          </div></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="editFilmModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header"><h5 class="modal-title">Редактировать контент</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body">
+        <form id="editFilmForm">
+          <input type="hidden" id="editFilmId">
+          <input type="hidden" id="editType">
+          <div class="row">
+            <div class="col-md-8 mb-3"><label class="form-label">Название</label><input type="text" class="form-control" id="editTitle"></div>
+            <div class="col-md-4 mb-3"><label class="form-label">Год релиза</label><input type="number" class="form-control" id="editReleaseYear"></div>
+          </div>
+          <div class="mb-3"><label class="form-label">Описание</label><textarea class="form-control" id="editDescription" rows="3"></textarea></div>
+          <div class="row">
+            <div class="col-md-6 mb-3"><label class="form-label">Режиссер</label><input type="text" class="form-control" id="editDirector"></div>
+            <div class="col-md-6 mb-3"><label class="form-label">Рейтинг (IMDB)</label><input type="number" step="0.1" class="form-control" id="editRating"></div>
+          </div>
+          <div id="edit-movie-fields" class="form-section-specific row" style="display: none;">
+            <div class="col-md-6 mb-3"><label class="form-label">Продолжительность (мин)</label><input type="number" class="form-control" id="editDuration"></div>
+            <div class="col-md-6 mb-3"><label class="form-label">Source файла</label><input type="text" class="form-control" id="editSource" placeholder="Введите путь к файлу, например, /films/movie.mp4"></div>
+          </div>
+
+          <div id="edit-serial-fields" class="form-section-specific" style="display: none;">
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Количество сезонов</label>
+                <p class="form-control-plaintext" id="editSeasonsDisplay">0</p>
+              </div>
+            </div>
+            <h5>Сезоны <button type="button" class="btn btn-sm btn-success ms-2" id="addSeasonBtn"><i class="bi bi-plus-circle"></i> Добавить сезон</button></h5>
+            <div id="seasonsContainer"></div>
+          </div>
+
+          <div class="mb-3"><label class="form-label">URL Постера</label><input type="text" class="form-control" id="editPoster"></div>
+          <div class="mb-3"><label class="form-label">Жанры (через запятую)</label><input type="text" class="form-control" id="editGenres" placeholder="например, Action, Comedy, Drama"></div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+        <button type="button" class="btn btn-primary" onclick="updateFilm()">Сохранить изменения</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" modality="editUserModal" id="editUserModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">Редактировать пользователя</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><form id="editUserForm"><input type="hidden" id="editUserId"><div class="mb-3"><label class="form-label">Имя</label><input type="text" class="form-control" id="editFirstName" required></div><div class="mb-3"><label class="form-label">Фамилия</label><input type="text" class="form-control" id="editLastName" required></div><div class="mb-3"><label class="form-label">Username</label><input type="text" class="form-control" id="editUsername" required></div><div class="mb-3"><label class="form-label">Email</label><input type="email" class="form-control" id="editEmail" required></div></form></div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button><button type="button" class="btn btn-primary" onclick="saveUser()">Сохранить</button></div></div></div></div>
+<div class="modal fade" id="blockUserModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">Заблокировать пользователя</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><form id="blockUserForm"><input type="hidden" id="blockUserId"><div class="mb-3"><label class="form-label">Причина</label><textarea class="form-control" id="blockReason" rows="3" required></textarea></div><div class="mb-3"><label class="form-label">Заблокировать до</label><input type="datetime-local" class="form-control" id="blockedUntil"><small class="form-text text-muted">Оставьте пустым для вечной блокировки</small></div></form></div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button><button type="button" class="btn btn-danger" onclick="blockUser()">Заблокировать</button></div></div></div></div>
+<div class="modal fade" id="rolesModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">Управление ролями</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><input type="hidden" id="rolesUserId"><div id="rolesCheckboxes"><div class="form-check"><input class="form-check-input" type="checkbox" value="ROLE_REGULAR" id="roleRegular"><label class="form-check-label" for="roleRegular">REGULAR</label></div><div class="form-check"><input class="form-check-input" type="checkbox" value="ROLE_ADMIN" id="roleAdmin"><label class="form-check-label" for="roleAdmin">ADMIN</label></div><div class="form-check"><input class="form-check-input" type="checkbox" value="ROLE_VIP" id="roleVip"><label class="form-check-label" for="roleVip">VIP</label></div></div></div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button><button type="button" class="btn btn-primary" onclick="updateRoles()">Сохранить</button></div></div></div></div>
+
+<div class="modal fade" id="addSeasonModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Добавить Сезон</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="addSeasonForm">
+          <input type="hidden" id="addSeasonSerialId">
+          <div class="mb-3">
+            <label class="form-label">Номер сезона</label>
+            <input type="number" class="form-control" id="addSeasonNumber" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Название сезона</label>
+            <input type="text" class="form-control" id="addSeasonTitle" required>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+        <button type="button" class="btn btn-primary" onclick="saveNewSeason()">Сохранить</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="editSeasonModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Редактировать Сезон</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="editSeasonForm">
+          <input type="hidden" id="editSeasonId">
+          <div class="mb-3">
+            <label class="form-label">Номер сезона</label>
+            <input type="number" class="form-control" id="editSeasonNumber" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Название сезона</label>
+            <input type="text" class="form-control" id="editSeasonTitle" required>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+        <button type="button" class="btn btn-primary" onclick="updateSeason()">Сохранить изменения</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="addEpisodeModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Добавить Эпизод</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="addEpisodeForm">
+          <input type="hidden" id="addEpisodeSeasonId">
+          <div class="mb-3">
+            <label class="form-label">Номер эпизода</label>
+            <input type="number" class="form-control" id="addEpisodeNumber" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Название эпизода</label>
+            <input type="text" class="form-control" id="addEpisodeTitle" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Source файла</label>
+            <input type="text" class="form-control" id="addEpisodeSource" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Продолжительность (мин)</label>
+            <input type="number" class="form-control" id="addEpisodeDuration">
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+        <button type="button" class="btn btn-primary" onclick="saveNewEpisode()">Сохранить</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="editEpisodeModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Редактировать Эпизод</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="editEpisodeForm">
+          <input type="hidden" id="editEpisodeId">
+          <input type="hidden" id="editEpisodeSeasonId">
+          <div class="mb-3">
+            <label class="form-label">Номер эпизода</label>
+            <input type="number" class="form-control" id="editEpisodeNumber" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Название эпизода</label>
+            <input type="text" class="form-control" id="editEpisodeTitle" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Source файла</label>
+            <input type="text" class="form-control" id="editEpisodeSource" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Продолжительность (мин)</label>
+            <input type="number" class="form-control" id="editEpisodeDuration">
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+        <button type="button" class="btn btn-primary" onclick="updateEpisode()">Сохранить изменения</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.6.1/sockjs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js"></script>
+<script>
+  let webSocketManager;
+  class WebSocketUsersStatus {
+    constructor() {
+      this.stompClient = null;
+      this.connected = false;
+      this.token = sessionStorage.getItem("token");
+      this.reconnectAttempts = 0;
+      this.maxReconnectAttempts = 5;
+      this.reconnectDelay = 3000;
+      this.maxReconnectDelay = 30000;
+      this.heartbeatInterval = null;
+      this.statusUpdateInterval = null;
+    }
+
+    connect() {
+      if (this.connected || !this.token) {
+        console.log('CLIENT_JS: Already connected or no token available');
+        return;
+      }
+      console.log(`CLIENT_JS: Attempting WebSocket connection. Attempt ${this.reconnectAttempts + 1}`);
+      this.updateConnectionStatus('connecting');
+      try {
+        if (this.stompClient) {
+          try {
+            this.stompClient.disconnect();
+          } catch (e) {
+            console.warn('CLIENT_JS: Error cleaning up previous connection:', e);
+          }
+        }
+        const socket = new SockJS(`/ws?token=${encodeURIComponent(this.token)}`);
+        this.stompClient = Stomp.over(socket);
+        this.stompClient.heartbeat.outgoing = 20000;
+        this.stompClient.heartbeat.incoming = 20000;
+        this.stompClient.reconnect_delay = 0;
+        this.statusUpdateInterval = setInterval(() => {
+          this.fetchAndApplyInitialUserStatusesForAdmin();
+        }, 10000);
+        this.stompClient.debug = (str) => {
+          if (str.includes('ERROR') || str.includes('CONNECTED') || str.includes('DISCONNECT')) {
+            console.log('CLIENT_STOMP_DEBUG:', str);
+          }
+        };
+        this.stompClient.connect({}, (frame) => {
+          console.log('CLIENT_JS: Connection frame received:', frame);
+          this.onConnected(frame);
+        }, (error) => {
+          console.error('CLIENT_JS: Connection error:', error);
+          this.onError(error);
+        });
+        socket.onclose = (event) => {
+          console.log('CLIENT_JS: WebSocket closed:', event);
+          this.onDisconnected();
+        };
+      } catch (error) {
+        console.error('CLIENT_JS: Error creating WebSocket connection:', error);
+        this.scheduleReconnect();
+      }
+    }
+
+    onConnected(frame) {
+      this.connected = true;
+      this.reconnectAttempts = 0;
+      console.log('CLIENT_JS: Successfully connected to WebSocket.');
+      this.updateConnectionStatus('connected');
+      this.subscribeToUserStatus();
+      this.fetchAndApplyInitialUserStatusesForAdmin();
+    }
+
+    onDisconnected() {
+      this.connected = false;
+      console.log('CLIENT_JS: Disconnected from WebSocket.');
+      this.updateConnectionStatus('disconnected');
+      if (this.statusUpdateInterval) {
+        clearInterval(this.statusUpdateInterval);
+        this.statusUpdateInterval = null;
+      }
+      this.scheduleReconnect();
+    }
+
+    onError(error) {
+      this.scheduleReconnect();
+    }
+
+    scheduleReconnect() {
+      if (this.reconnectAttempts < this.maxReconnectAttempts) {
+        this.reconnectAttempts++;
+        const delay = Math.min(this.reconnectDelay * this.reconnectAttempts, this.maxReconnectDelay);
+        console.log(`CLIENT_JS: Scheduling reconnect in ${delay}ms`);
+        setTimeout(() => this.connect(), delay);
+      } else {
+        console.error('CLIENT_JS: Max reconnect attempts reached.');
+      }
+    }
+
+    subscribeToUserStatus() {
+      this.stompClient.subscribe('/topic/user-status', (message) => {
+        const payload = JSON.parse(message.body);
+        if (payload.type === 'status') {
+          this.updateUserStatusIndicator(payload.user, payload.online);
+        }
+      });
+    }
+
+    updateUserStatusIndicator(username, isOnline) {
+      const indicator = document.getElementById(`status-indicator-${username}`);
+      if (indicator) {
+        if (isOnline) {
+          indicator.textContent = 'Онлайн';
+          indicator.classList.remove('bg-secondary');
+          indicator.classList.add('bg-success');
+        } else {
+          indicator.textContent = 'Оффлайн';
+          indicator.classList.remove('bg-success');
+          indicator.classList.add('bg-secondary');
+        }
+      }
+    }
+
+    updateConnectionStatus(status) {
+      const statusElement = document.getElementById('connectionStatus');
+      if (!statusElement) return;
+      statusElement.classList.remove('d-none', 'status-connected', 'status-disconnected', 'status-connecting');
+
+      switch (status) {
+        case 'connected':
+          statusElement.textContent = 'Connected';
+          statusElement.classList.add('status-connected');
+          setTimeout(() => statusElement.classList.add('d-none'), 3000);
+          break;
+        case 'disconnected':
+          statusElement.textContent = 'Disconnected';
+          statusElement.classList.add('status-disconnected');
+          break;
+        case 'connecting':
+          statusElement.textContent = 'Connecting...';
+          statusElement.classList.add('status-connecting');
+          break;
+      }
+    }
+    async fetchAndApplyInitialUserStatusesForAdmin() {
+      const usernamesToQuery = new Set();
+      document.querySelectorAll('#usersTableBody tr').forEach(row => {
+        const usernameCell = row.children[2];
+        if (usernameCell) {
+          usernamesToQuery.add(usernameCell.textContent.trim());
+        }
+      });
+
+      if (usernamesToQuery.size === 0) {
+        console.log("Admin Panel: No users to query for initial status.");
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/chat/onlineStatusesBulk', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${this.token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(Array.from(usernamesToQuery))
+        });
+
+        if (response.ok) {
+          const statuses = await response.json();
+          console.log("Admin Panel: Received initial user statuses:", statuses);
+          for (const username in statuses) {
+            this.updateUserStatusIndicator(username, statuses[username]);
+          }
+        } else {
+          console.error("Admin Panel: Failed to fetch initial user statuses. Status:", response.status);
+        }
+      } catch (error) {
+        console.error("Admin Panel: Error fetching initial user statuses:", error);
+      }
+    }
+  }
+
+  const API_BASE = '/api/admin';
+  const token = sessionStorage.getItem("token");
+  let allFilms = [];
+
+  document.addEventListener('DOMContentLoaded', function() {
+    webSocketManager = new WebSocketUsersStatus();
+    webSocketManager.connect();
+    loadUsers(webSocketManager);
+
+    const navLinks = document.querySelectorAll('#admin-nav .nav-link');
+    navLinks.forEach(link => {
+      link.addEventListener('click', function(e) {
+        e.preventDefault();
+        const targetId = this.getAttribute('data-section');
+
+        navLinks.forEach(l => l.classList.remove('active'));
+        this.classList.add('active');
+
+        document.querySelectorAll('.content-section').forEach(section => {
+          section.classList.toggle('active', section.id === targetId);
+        });
+
+        if (targetId === 'manage-content-section' && allFilms.length === 0) {
+          loadAllFilms();
+        }
+        if (targetId === 'add-content-section') {
+          clearFilmForm('add');
+        }
+      });
+    });
+
+    document.getElementById('searchInput').addEventListener('keypress', e => e.key === 'Enter' && searchUser());
+
+    document.getElementById('addSeasonBtn').addEventListener('click', function() {
+      const serialId = document.getElementById('editFilmId').value;
+      openAddSeasonModal(serialId);
+    });
+
+    document.getElementById('addType').addEventListener('change', function() {
+      const type = this.value.toLowerCase();
+      const isMovie = type === 'movie';
+      const isSerial = type === 'serial';
+      document.getElementById('add-movie-fields').style.display = isMovie ? 'flex' : 'none';
+      document.getElementById('add-serial-fields').style.display = isSerial ? 'block' : 'none';
+    });
+
+    document.getElementById('editType').addEventListener('change', function() {
+      const type = this.value.toLowerCase();
+      const isMovie = type === 'movie';
+      const isSerial = type === 'serial';
+      document.getElementById('edit-movie-fields').style.display = isMovie ? 'flex' : 'none';
+      document.getElementById('edit-serial-fields').style.display = isSerial ? 'block' : 'none';
+    });
+  });
+
+  async function fetchFromOMDB() {
+    const title = document.getElementById('omdbTitle').value.trim();
+    if (!title) { showAlert('Введите название', 'warning'); return; }
+
+    document.getElementById('fetchSpinner').style.display = 'inline-block';
+    try {
+      const response = await fetch(`${API_BASE}/getFilmData?title=${encodeURIComponent(title)}`, {
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(response.status === 404 ? 'Не найдено на OMDB' : `Ошибка сервера: ${errorText}`);
+      }
+
+      const data = await response.json();
+      console.log("OMDB Data:", data);
+
+      data.type = data.type ? data.type.toLowerCase() : '';
+
+      if (data.type === 'movie') {
+        //data.source = 'movie.mp4';
+      } else if (data.type === 'serial') {
+        data.seasons = data.numberOfSeasons || 0;
+      }
+
+      populateFilmForm('add', data);
+
+    } catch (error) {
+      showAlert(error.message, 'danger');
+    } finally {
+      document.getElementById('fetchSpinner').style.display = 'none';
+    }
+  }
+
+  function saveNewFilm() {
+    const filmData = getFilmDataFromForm('add');
+    if (!filmData.title) { showAlert('Название не может быть пустым', 'warning'); return; }
+    if (!filmData.type) { showAlert('Тип контента (фильм/сериал) не определен', 'warning'); return; }
+    if (filmData.type === 'movie') {
+      if (!filmData.duration) { showAlert('Пожалуйста, укажите продолжительность фильма', 'warning'); return; }
+      if (!filmData.source) { showAlert('Пожалуйста, укажите источник файла для фильма', 'warning'); return; }
+    } else if (filmData.type === 'serial') {
+      if (!filmData.seasons || filmData.seasons <= 0) {
+        showAlert('Пожалуйста, укажите количество сезонов для сериала', 'warning');
+        return;
+      }
+    }
+
+    fetch(`${API_BASE}/films`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', "Authorization": `Bearer ${token}` },
+      body: JSON.stringify(filmData)
+    })
+            .then(async response => {
+              if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Ошибка сохранения');
+              }
+              return response.json();
+            })
+            .then(savedFilm => {
+              showAlert(`"${savedFilm.title}" успешно сохранен!`, 'success');
+              clearFilmForm('add');
+              loadAllFilms();
+            })
+            .catch(error => showAlert(error.message, 'danger'));
+  }
+
+  async function loadAllFilms() {
+    try {
+      const response = await fetch(`${API_BASE}/films`, { headers: { "Authorization": `Bearer ${token}` } });
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Ошибка загрузки списка: ${errorText}`);
+      }
+      allFilms = await response.json();
+      renderFilmsTable(allFilms);
+    } catch (error) {
+      showAlert(error.message, 'danger');
+    }
+  }
+
+  function renderFilmsTable(films) {
+    const tbody = document.getElementById('filmsTableBody');
+    tbody.innerHTML = '';
+    films.forEach(film => {
+      const type = film.type && film.type.toLowerCase() === 'serial' ? 'Сериал' : 'Фильм';
+      const badgeClass = type === 'Сериал' ? 'bg-success' : 'bg-primary';
+      const row = `
+            <tr>
+                <td>${film.id}</td>
+                <td>${film.title}</td>
+                <td><span class="badge ${badgeClass}">${type}</span></td>
+                <td>${film.releaseYear}</td>
+                <td>
+                    <button class="btn btn-sm btn-outline-primary" onclick="openEditModal(${film.id})"><i class="bi bi-pencil"></i></button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="deleteFilm(${film.id})"><i class="bi bi-trash"></i></button>
+                </td>
+            </tr>
+        `;
+      tbody.insertAdjacentHTML('beforeend', row);
+    });
+  }
+
+  function openEditModal(filmId) {
+    const filmData = allFilms.find(f => f.id === filmId);
+    if (!filmData) return;
+
+    filmData.type = filmData.type && filmData.type.toLowerCase() === 'serial' || filmData.hasOwnProperty('numberOfSeasons') ? 'serial' : 'movie';
+
+    fetch(`${API_BASE}/films/${filmId}`, {
+      headers: { "Authorization": `Bearer ${token}` }
+    })
+            .then(response => {
+              if (!response.ok) throw new Error('Ошибка загрузки деталей контента');
+              return response.json();
+            })
+            .then(fullFilmData => {
+              populateFilmForm('edit', fullFilmData);
+              if (fullFilmData.type === 'serial') {
+                renderSeasonsForEdit(fullFilmData.id, fullFilmData.seasonList || []);
+              }
+              new bootstrap.Modal(document.getElementById('editFilmModal')).show();
+            })
+            .catch(error => showAlert(error.message, 'danger'));
+  }
+
+  function updateFilm() {
+    const filmId = document.getElementById('editFilmId').value;
+    const filmData = getFilmDataFromForm('edit');
+    if (!filmData.title) { showAlert('Название не может быть пустым', 'warning'); return; }
+    if (!filmData.type) { showAlert('Тип контента (фильм/сериал) не определен', 'warning'); return; }
+    if (filmData.type === 'movie') {
+      if (!filmData.duration) { showAlert('Пожалуйста, укажите продолжительность фильма', 'warning'); return; }
+      if (!filmData.source) { showAlert('Пожалуйста, укажите источник файла для фильма', 'warning'); return; }
+    }
+    // Проверка для сериалов удалена, так как seasons не требуется при редактировании
+
+    fetch(`${API_BASE}/films/${filmId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', "Authorization": `Bearer ${token}` },
+      body: JSON.stringify(filmData)
+    })
+            .then(async response => {
+              if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Ошибка обновления');
+              }
+              return response.json();
+            })
+            .then(updatedFilm => {
+              showAlert(`"${updatedFilm.title}" успешно обновлен!`, 'success');
+              bootstrap.Modal.getInstance(document.getElementById('editFilmModal')).hide();
+              loadAllFilms();
+            })
+            .catch(error => showAlert(error.message, 'danger'));
+  }
+
+  async function deleteFilm(filmId) {
+    if (!confirm('Вы уверены, что хотите удалить этот элемент?')) return;
+
+    try {
+      const response = await fetch(`${API_BASE}/films/${filmId}`, {
+        method: 'DELETE',
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Ошибка удаления');
+      }
+      showAlert('Элемент удален', 'success');
+      loadAllFilms();
+    } catch (error) {
+      showAlert(error.message, 'danger');
+    }
+  }
+
+  function populateFilmForm(prefix, data) {
+    const filmIdField = document.getElementById(`${prefix}FilmId`);
+    if (filmIdField) filmIdField.value = data.id || '';
+
+    const titleField = document.getElementById(`${prefix}Title`);
+    if (titleField) titleField.value = data.title || '';
+
+    const releaseYearField = document.getElementById(`${prefix}ReleaseYear`);
+    if (releaseYearField) releaseYearField.value = data.releaseYear || '';
+
+    const descriptionField = document.getElementById(`${prefix}Description`);
+    if (descriptionField) descriptionField.value = data.description || '';
+
+    const directorField = document.getElementById(`${prefix}Director`);
+    if (directorField) directorField.value = data.director || '';
+
+    const ratingField = document.getElementById(`${prefix}Rating`);
+    if (ratingField) ratingField.value = data.rating || '';
+
+    const posterField = document.getElementById(`${prefix}Poster`);
+    if (posterField) posterField.value = data.poster || data.posterPath || '';
+
+    const genresField = document.getElementById(`${prefix}Genres`);
+    if (genresField) genresField.value = (data.genres || []).map(g => g.name || g).join(', ');
+
+    const typeField = document.getElementById(`${prefix}Type`);
+    if (typeField) typeField.value = data.type || '';
+
+    const isMovie = data.type === 'movie';
+    const isSerial = data.type === 'serial';
+    if (isSerial) {
+      document.getElementById(`${prefix}Type`).value = 'serial';
+    }
+
+    const movieFields = document.getElementById(`${prefix}-movie-fields`);
+    if (movieFields) movieFields.style.display = isMovie ? 'flex' : 'none';
+
+    const serialFields = document.getElementById(`${prefix}-serial-fields`);
+    if (serialFields) serialFields.style.display = isSerial ? 'block' : 'none';
+
+    if (isMovie) {
+      const durationField = document.getElementById(`${prefix}Duration`);
+      if (durationField) durationField.value = data.duration || '';
+
+      const sourceField = document.getElementById(`${prefix}Source`);
+      if (sourceField) sourceField.value = data.source || '';
+    }
+
+    if (isSerial) {
+      const seasonsDisplay = document.getElementById(`${prefix}SeasonsDisplay`);
+      if (seasonsDisplay) {
+        const numberOfSeasons = data.seasonList ? data.seasonList.length : 0;
+        seasonsDisplay.textContent = numberOfSeasons; // Отображаем количество сезонов
+      }
+      if (prefix === 'edit') {
+        renderSeasonsForEdit(data.id, data.seasonList || []);
+      }
+    }
+  }
+
+  function getFilmDataFromForm(prefix) {
+    const dto = {
+      id: document.getElementById(`${prefix}FilmId`).value || null,
+      title: document.getElementById(`${prefix}Title`).value,
+      releaseYear: parseInt(document.getElementById(`${prefix}ReleaseYear`).value) || 0,
+      description: document.getElementById(`${prefix}Description`).value,
+      director: document.getElementById(`${prefix}Director`).value,
+      rating: parseFloat(document.getElementById(`${prefix}Rating`).value) || 0.0,
+      poster: document.getElementById(`${prefix}Poster`).value,
+      type: document.getElementById(`${prefix}Type`).value,
+      genres: document.getElementById(`${prefix}Genres`).value.split(',')
+              .map(name => ({ name: name.trim() })).filter(g => g.name),
+    };
+
+    if (dto.type === 'movie') {
+      dto.duration = parseInt(document.getElementById(`${prefix}Duration`).value) || 0;
+      dto.source = document.getElementById(`${prefix}Source`).value;
+    } else if (dto.type === 'serial' && prefix === 'add') {
+      dto.seasons = parseInt(document.getElementById(`${prefix}Seasons`).value) || 0;
+    }
+    return dto;
+  }
+
+  function clearFilmForm(prefix) {
+    document.getElementById(`${prefix}FilmForm`).reset();
+    document.getElementById('omdbTitle').value = '';
+    document.getElementById(`${prefix}Type`).value = '';
+    document.getElementById(`${prefix}-movie-fields`).style.display = 'none';
+    document.getElementById(`${prefix}-serial-fields`).style.display = 'none';
+    if (prefix === 'add') {
+      const addDurationField = document.getElementById('addDuration');
+      if (addDurationField) addDurationField.value = '';
+      const addSourceField = document.getElementById('addSource');
+      if (addSourceField) addSourceField.value = '';
+      const addSeasonsField = document.getElementById('addSeasons');
+      if (addSeasonsField) addSeasonsField.value = '';
+    } else if (prefix === 'edit') {
+      document.getElementById('seasonsContainer').innerHTML = '';
+    }
+  }
+
+  async function renderSeasonsForEdit(serialId, seasons) {
+    const seasonsContainer = document.getElementById('seasonsContainer');
+    seasonsContainer.innerHTML = '';
+    if (!seasons || seasons.length === 0) {
+      seasonsContainer.innerHTML = '<p class="text-muted">Нет сезонов для этого сериала.</p>';
+      return;
+    }
+
+    seasons.sort((a, b) => a.seasonNumber - b.seasonNumber);
+
+    for (const season of seasons) {
+      const seasonCard = document.createElement('div');
+      seasonCard.className = 'card season-card p-3 mb-3';
+      seasonCard.innerHTML = `
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h6 class="mb-0">Сезон ${season.seasonNumber}: ${season.title}</h6>
+                <div>
+                    <button type="button" class="btn btn-sm btn-outline-info me-2" onclick="openEditSeasonModal(${season.id})"><i class="bi bi-pencil"></i></button>
+                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteSeason(${season.id})"><i class="bi bi-trash"></i></button>
+                </div>
+            </div>
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h6 class="mb-0">Эпизоды</h6>
+                <button type="button" class="btn btn-sm btn-success" onclick="openAddEpisodeModal(${season.id})"><i class="bi bi-plus-circle"></i> Добавить эпизод</button>
+            </div>
+            <ul class="episode-list" id="episodes-list-${season.id}"></ul>
+        `;
+      seasonsContainer.appendChild(seasonCard);
+      await renderEpisodesForSeason(season.id, season.episodeList);
+    }
+  }
+
+  async function openAddSeasonModal(serialId) {
+    document.getElementById('addSeasonSerialId').value = serialId;
+    document.getElementById('addSeasonForm').reset();
+    new bootstrap.Modal(document.getElementById('addSeasonModal')).show();
+  }
+
+  async function saveNewSeason() {
+    const serialId = document.getElementById('addSeasonSerialId').value;
+    const seasonData = {
+      serialFilmId: serialId,
+      seasonNumber: parseInt(document.getElementById('addSeasonNumber').value) || 0,
+      title: document.getElementById('addSeasonTitle').value.trim()
+    };
+
+    if (!seasonData.serialFilmId || !seasonData.seasonNumber || !seasonData.title) {
+      showAlert('Пожалуйста, заполните все поля сезона.', 'warning');
+      return;
+    }
+
+    try {
+      const response = await fetch(`${API_BASE}/films/${serialId}/seasons`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', "Authorization": `Bearer ${token}` },
+        body: JSON.stringify(seasonData)
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Ошибка добавления сезона');
+      }
+      showAlert('Сезон успешно добавлен!', 'success');
+      bootstrap.Modal.getInstance(document.getElementById('addSeasonModal')).hide();
+      openEditModal(serialId);
+    } catch (error) {
+      showAlert(error.message, 'danger');
+    }
+  }
+
+  async function openEditSeasonModal(seasonId) {
+    try {
+      const response = await fetch(`${API_BASE}/seasons/${seasonId}`, {
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Ошибка загрузки сезона');
+      }
+      const seasonData = await response.json();
+      document.getElementById('editSeasonId').value = seasonData.id;
+      document.getElementById('editSeasonNumber').value = seasonData.seasonNumber;
+      document.getElementById('editSeasonTitle').value = seasonData.title;
+      new bootstrap.Modal(document.getElementById('editSeasonModal')).show();
+    } catch (error) {
+      showAlert(error.message, 'danger');
+    }
+  }
+
+  async function updateSeason() {
+    const seasonId = document.getElementById('editSeasonId').value;
+    const seasonData = {
+      seasonNumber: parseInt(document.getElementById('editSeasonNumber').value) || 0,
+      title: document.getElementById('editSeasonTitle').value.trim()
+    };
+    const currentSerialId = document.getElementById('editFilmId').value;
+
+    if (!seasonData.seasonNumber || !seasonData.title) {
+      showAlert('Пожалуйста, заполните все поля сезона.', 'warning');
+      return;
+    }
+
+    try {
+      const response = await fetch(`${API_BASE}/seasons/${seasonId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', "Authorization": `Bearer ${token}` },
+        body: JSON.stringify(seasonData)
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Ошибка обновления сезона');
+      }
+      showAlert('Сезон успешно обновлен!', 'success');
+      bootstrap.Modal.getInstance(document.getElementById('editSeasonModal')).hide();
+      openEditModal(currentSerialId);
+    } catch (error) {
+      showAlert(error.message, 'danger');
+    }
+  }
+
+  async function deleteSeason(seasonId) {
+    if (!confirm('Вы уверены, что хотите удалить этот сезон и все его эпизоды?')) return;
+    const currentSerialId = document.getElementById('editFilmId').value;
+
+    try {
+      const response = await fetch(`${API_BASE}/seasons/${seasonId}`, {
+        method: 'DELETE',
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Ошибка удаления сезона');
+      }
+      showAlert('Сезон удален!', 'success');
+      openEditModal(currentSerialId);
+    } catch (error) {
+      showAlert(error.message, 'danger');
+    }
+  }
+
+  async function renderEpisodesForSeason(seasonId, episodes) {
+    const episodesList = document.getElementById(`episodes-list-${seasonId}`);
+    episodesList.innerHTML = '';
+    if (!episodes || episodes.length === 0) {
+      episodesList.innerHTML = '<li class="text-muted">Нет эпизодов в этом сезоне.</li>';
+      return;
+    }
+
+    episodes.sort((a, b) => a.episodeNumber - b.episodeNumber);
+
+    episodes.forEach(episode => {
+      const episodeItem = document.createElement('li');
+      episodeItem.className = 'episode-item';
+      episodeItem.innerHTML = `
+            <span>Эпизод ${episode.episodeNumber}: ${episode.title} (${episode.duration || 0} мин)</span>
+            <div>
+                <button type="button" class="btn btn-sm btn-outline-info me-2" onclick="openEditEpisodeModal(${episode.id})"><i class="bi bi-pencil"></i></button>
+                <button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteEpisode(${episode.id})"><i class="bi bi-trash"></i></button>
+            </div>
+        `;
+      episodesList.appendChild(episodeItem);
+    });
+  }
+
+  async function openAddEpisodeModal(seasonId) {
+    console.log('Попытка открыть модальное окно для добавления эпизода, seasonId:', seasonId);
+    const modalElement = document.getElementById('addEpisodeModal');
+    if (!modalElement) {
+      console.error('Модальное окно с id="addEpisodeModal" не найдено');
+      return;
+    }
+    document.getElementById('addEpisodeSeasonId').value = seasonId;
+    document.getElementById('addEpisodeForm').reset();
+    const modal = new bootstrap.Modal(modalElement);
+    modal.show();
+    console.log('Модальное окно открыто');
+  }
+
+  async function saveNewEpisode() {
+    const seasonId = document.getElementById('addEpisodeSeasonId').value;
+    const episodeData = {
+      seasonId: seasonId,
+      episodeNumber: parseInt(document.getElementById('addEpisodeNumber').value) || 0,
+      title: document.getElementById('addEpisodeTitle').value.trim(),
+      source: document.getElementById('addEpisodeSource').value.trim(),
+      duration: parseInt(document.getElementById('addEpisodeDuration').value) || 0
+    };
+
+    if (!episodeData.seasonId || !episodeData.episodeNumber || !episodeData.title || !episodeData.source) {
+      showAlert('Пожалуйста, заполните все обязательные поля эпизода.', 'warning');
+      return;
+    }
+
+    try {
+      const response = await fetch(`${API_BASE}/seasons/${seasonId}/episodes`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', "Authorization": `Bearer ${token}` },
+        body: JSON.stringify(episodeData)
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Ошибка добавления эпизода');
+      }
+      showAlert('Эпизод успешно добавлен!', 'success');
+      bootstrap.Modal.getInstance(document.getElementById('addEpisodeModal')).hide();
+      const currentSerialId = document.getElementById('editFilmId').value;
+      openEditModal(currentSerialId);
+    } catch (error) {
+      showAlert(error.message, 'danger');
+    }
+  }
+
+  async function openEditEpisodeModal(episodeId) {
+    if (event) event.preventDefault();
+    try {
+      console.log('Попытка открыть модальное окно для эпизода:', episodeId);
+      const response = await fetch(`${API_BASE}/episodes/${episodeId}`, {
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Ошибка загрузки эпизода');
+      }
+      const episodeData = await response.json();
+      console.log('Получены данные:', episodeData);
+
+      document.getElementById('editEpisodeId').value = episodeData.id;
+      document.getElementById('editEpisodeSeasonId').value = episodeData.seasonId;
+      document.getElementById('editEpisodeNumber').value = episodeData.episodeNumber;
+      document.getElementById('editEpisodeTitle').value = episodeData.title;
+      document.getElementById('editEpisodeSource').value = episodeData.source;
+      document.getElementById('editEpisodeDuration').value = episodeData.duration;
+
+      const modalElement = document.getElementById('editEpisodeModal');
+      if (!modalElement) {
+        throw new Error('Элемент с id="editEpisodeModal" не найден в DOM');
+      }
+      const modal = new bootstrap.Modal(modalElement);
+      modal.show();
+      console.log('Модальное окно открыто');
+
+      modalElement.addEventListener('hidden.bs.modal', () => {
+        console.log('Модальное окно закрыто');
+      }, { once: true });
+    } catch (error) {
+      console.error('Ошибка в openEditEpisodeModal:', error);
+      showAlert(error.message, 'danger');
+    }
+  }
+
+  async function updateEpisode() {
+    const episodeId = document.getElementById('editEpisodeId').value;
+    const seasonId = document.getElementById('editEpisodeSeasonId').value;
+    const episodeData = {
+      episodeNumber: parseInt(document.getElementById('editEpisodeNumber').value) || 0,
+      title: document.getElementById('editEpisodeTitle').value.trim(),
+      source: document.getElementById('editEpisodeSource').value.trim(),
+      duration: parseInt(document.getElementById('editEpisodeDuration').value) || 0
+    };
+
+    if (!episodeData.episodeNumber || !episodeData.title || !episodeData.source) {
+      showAlert('Пожалуйста, заполните все обязательные поля эпизода.', 'warning');
+      return;
+    }
+
+    try {
+      const response = await fetch(`${API_BASE}/episodes/${episodeId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', "Authorization": `Bearer ${token}` },
+        body: JSON.stringify(episodeData)
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Ошибка обновления эпизода');
+      }
+      showAlert('Эпизод успешно обновлен!', 'success');
+      bootstrap.Modal.getInstance(document.getElementById('editEpisodeModal')).hide();
+      const currentSerialId = document.getElementById('editFilmId').value;
+      openEditModal(currentSerialId);
+    } catch (error) {
+      showAlert(error.message, 'danger');
+    }
+  }
+
+  async function deleteEpisode(episodeId) {
+    if (!confirm('Вы уверены, что хотите удалить этот эпизод?')) return;
+    const currentSerialId = document.getElementById('editFilmId').value;
+
+    try {
+      const response = await fetch(`${API_BASE}/episodes/${episodeId}`, {
+        method: 'DELETE',
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Ошибка удаления эпизода');
+      }
+      showAlert('Эпизод удален!', 'success');
+      openEditModal(currentSerialId);
+    } catch (error) {
+      showAlert(error.message, 'danger');
+    }
+  }
+
+  let allUsers = [];
+
+  async function loadUsers(webSocketManager) {
+    showLoading(true);
+    try {
+      const response = await fetch(`${API_BASE}/all-users`, { headers: { "Authorization": `Bearer ${token}` } });
+      if (!response.ok) throw new Error('Ошибка загрузки пользователей');
+      allUsers = await response.json();
+      renderUsers(allUsers);
+      updateStats();
+      if (webSocketManager.connected) {
+        await webSocketManager.fetchAndApplyInitialUserStatusesForAdmin();
+      } else {
+        console.log("WebSocket not connected yet, statuses will be updated upon connection.");
+      }
+    } catch (error) { showAlert(error.message, 'danger'); } finally { showLoading(false); }
+  }
+
+  function renderUsers(users) {
+    const tbody = document.getElementById('usersTableBody');
+    tbody.innerHTML = '';
+    users.forEach(user => {
+      const rolesBadges = user.roles.map(role => `<span class="badge bg-secondary m-1">${role}</span>`).join('');
+      const statusBadge = user.blocked ? `<span class="badge bg-danger">Заблокирован</span>` : `<span class="badge bg-success">Активен</span>`;
+      const onlineStatusIndicator = `<span id="status-indicator-${user.username}" class="badge bg-secondary">Оффлайн</span>`;
+      const row = `
+          <tr class="${user.blocked ? 'user-blocked' : ''}">
+              <td>${user.id}</td>
+              <td>${user.firstName} ${user.lastName}</td>
+              <td>${user.username}</td>
+              <td>${user.email}</td>
+              <td>${rolesBadges}</td>
+              <td>${statusBadge}</td>
+              <td>${onlineStatusIndicator}</td>
+              <td>
+                  <button class="btn btn-sm btn-outline-primary" onclick="editUser(${user.id})"><i class="bi bi-pencil"></i></button>
+                  <button class="btn btn-sm btn-outline-secondary" onclick="manageRoles(${user.id})"><i class="bi bi-person-gear"></i></button>
+                  ${user.blocked ? `<button class="btn btn-sm btn-outline-success" onclick="unblockUser(${user.id})"><i class="bi bi-unlock"></i></button>` : `<button class="btn btn-sm btn-outline-warning" onclick="showBlockModal(${user.id})"><i class="bi bi-lock"></i></button>`}
+                  <button class="btn btn-sm btn-outline-danger" onclick="deleteUser(${user.id})"><i class="bi bi-trash"></i></button>
+              </td>
+          </tr>`;
+      tbody.insertAdjacentHTML('beforeend', row);
+    });
+  }
+
+  function updateStats() {
+    document.getElementById('totalUsers').textContent = allUsers.length;
+    document.getElementById('blockedUsers').textContent = allUsers.filter(u => u.blocked).length;
+    document.getElementById('activeUsers').textContent = allUsers.filter(u => !u.blocked).length;
+  }
+
+  async function searchUser() {
+    const query = document.getElementById('searchInput').value.trim();
+    if (!query) { clearSearch(); return; }
+    try {
+      const response = await fetch(`${API_BASE}/find?q=${encodeURIComponent(query)}`, { headers: { "Authorization": `Bearer ${token}` }});
+      if (response.ok) {
+        const user = await response.json();
+        renderUsers(user ? (Array.isArray(user) ? user : [user]) : []);
+      } else { renderUsers([]); }
+    } catch (error) { showAlert('Ошибка поиска', 'danger'); }
+  }
+
+  function clearSearch() { document.getElementById('searchInput').value = ''; renderUsers(allUsers); }
+
+  function editUser(userId) {
+    const user = allUsers.find(u => u.id === userId);
+    if (!user) return;
+    document.getElementById('editUserId').value = user.id;
+    document.getElementById('editFirstName').value = user.firstName;
+    document.getElementById('editLastName').value = user.lastName;
+    document.getElementById('editUsername').value = user.username;
+    document.getElementById('editEmail').value = user.email;
+    new bootstrap.Modal(document.getElementById('editUserModal')).show();
+  }
+
+  async function saveUser() {
+    const userData = { id: document.getElementById('editUserId').value, firstName: document.getElementById('editFirstName').value, lastName: document.getElementById('editLastName').value, username: document.getElementById('editUsername').value, email: document.getElementById('editEmail').value };
+    try {
+      const response = await fetch(`${API_BASE}/update`, { method: 'PUT', headers: { 'Content-Type': 'application/json', "Authorization": `Bearer ${token}` }, body: JSON.stringify(userData) });
+      if (response.ok) {
+        showAlert('Пользователь обновлен', 'success');
+        bootstrap.Modal.getInstance(document.getElementById('editUserModal')).hide();
+        loadUsers(webSocketManager);
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Ошибка обновления');
+      }
+    } catch (e) { showAlert(e.message, 'danger'); }
+  }
+
+  function showBlockModal(userId) {
+    document.getElementById('blockUserId').value = userId;
+    document.getElementById('blockUserForm').reset();
+    new bootstrap.Modal(document.getElementById('blockUserModal')).show();
+  }
+
+  async function blockUser() {
+    const blockData = { userId: document.getElementById('blockUserId').value, reason: document.getElementById('blockReason').value, blockedUntil: document.getElementById('blockedUntil').value || null };
+    try {
+      const response = await fetch(`${API_BASE}/block`, { method: 'PUT', headers: { 'Content-Type': 'application/json', "Authorization": `Bearer ${token}` }, body: JSON.stringify(blockData) });
+      if (response.ok) {
+        showAlert('Пользователь заблокирован', 'success');
+        bootstrap.Modal.getInstance(document.getElementById('blockUserModal')).hide();
+        loadUsers(webSocketManager);
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Ошибка блокировки');
+      }
+    } catch (e) { showAlert(e.message, 'danger'); }
+  }
+
+  async function unblockUser(userId) {
+    if (!confirm('Вы уверены?')) return;
+    try {
+      const response = await fetch(`${API_BASE}/unblock?id=${userId}`, { method: 'PUT', headers: { "Authorization": `Bearer ${token}` } });
+      if (response.ok) { showAlert('Пользователь разблокирован', 'success'); loadUsers(webSocketManager); } else {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Ошибка разблокировки');
+      }
+    } catch (e) { showAlert(e.message, 'danger'); }
+  }
+
+  function manageRoles(userId) {
+    const user = allUsers.find(u => u.id === userId);
+    if (!user) return;
+    document.getElementById('rolesUserId').value = userId;
+    document.querySelectorAll('#rolesCheckboxes input').forEach(cb => cb.checked = user.roles.includes(cb.value));
+    new bootstrap.Modal(document.getElementById('rolesModal')).show();
+  }
+
+  async function updateRoles() {
+    const userId = document.getElementById('rolesUserId').value;
+    const selectedRoles = Array.from(document.querySelectorAll('#rolesCheckboxes input:checked')).map(cb => cb.value);
+    try {
+      const response = await fetch(`${API_BASE}/users/${userId}/roles`, { method: 'PUT', headers: { 'Content-Type': 'application/json', "Authorization": `Bearer ${token}` }, body: JSON.stringify(selectedRoles) });
+      if (response.ok) {
+        showAlert('Роли обновлены', 'success');
+        bootstrap.Modal.getInstance(document.getElementById('rolesModal')).hide();
+        loadUsers(webSocketManager);
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Ошибка обновления ролей');
+      }
+    } catch (e) { showAlert(e.message, 'danger'); }
+  }
+
+  async function deleteUser(userId) {
+    if (!confirm('Удалить пользователя?')) return;
+    try {
+      const response = await fetch(`${API_BASE}/delete/${userId}`, { method: 'DELETE', headers: { "Authorization": `Bearer ${token}` } });
+      if (response.ok) { showAlert('Пользователь удален', 'success'); loadUsers(webSocketManager); } else {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Ошибка удаления');
+      }
+    } catch (e) { showAlert(e.message, 'danger'); }
+  }
+
+  function showLoading(show) { document.getElementById('loadingIndicator').style.display = show ? 'block' : 'none'; }
+
+  function showAlert(message, type = 'info') {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+    alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 1056;';
+    alertDiv.innerHTML = `${message}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
+    document.body.appendChild(alertDiv);
+    setTimeout(() => bootstrap.Alert.getOrCreateInstance(alertDiv)?.close(), 5000);
+  }
+</script>
+</body>
+</html>

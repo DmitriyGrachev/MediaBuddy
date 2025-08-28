@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <!-- Подключение Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Подключение Bootstrap JS (если нужен) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" defer></script>
+    <link rel="stylesheet" th:href="@{/css/styles.css}">
+    <title>Main page</title>
+
+    <style>
+        .carousel-wrapper {
+            overflow: hidden;
+            width: 100%;
+        }
+
+        .movies-container {
+            transition: transform 0.5s ease;
+        }
+
+        .movie-card {
+            flex: 0 0 20%;
+            padding: 0 7.5px;
+            box-sizing: border-box;
+        }
+
+        .card {
+            height: 100%;
+        }
+
+        .carousel-control-prev,
+        .carousel-control-next {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(0,0,0,0.5);
+            border: none;
+            width: 40px;
+            height: 60px;
+            z-index: 10;
+            cursor: pointer;
+        }
+
+        .carousel-control-prev {
+            left: 0;
+        }
+
+        .carousel-control-next {
+            right: 0;
+        }
+        .carousel-dots {
+            display: flex;
+            justify-content: center; /* Вирівнювання крапок по центру */
+            margin-top: 15px; /* Відступ від каруселі */
+        }
+
+        .carousel-dot {
+            width: 10px;
+            height: 10px;
+            background-color: #bbb;
+            border-radius: 50%; /* Кругла форма */
+            margin: 0 5px; /* Відступи між крапками */
+            cursor: pointer;
+            border: none; /* Видаляємо стандартну рамку кнопки */
+            padding: 0; /* Видаляємо внутрішні відступи кнопки */
+            outline: none; /* Видаляємо обведення при фокусі */
+        }
+
+        .carousel-dot.active {
+            background-color: #555; /* Колір активної крапки */
+        }
+        .card-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            justify-content: center;
+        }
+
+        .card-wrapper {
+            flex: 0 0 calc(20% - 1rem); /* 5 в ряд */
+            max-width: calc(20% - 1rem);
+        }
+    </style>
+</head>
+<body>
+<header>
+    <div th:insert="~{menunavy::navy}"></div>
+</header>
+<div class="container my-5">
+    <div class="movie-carousel">
+        <h2>Most relevant</h2>
+        <div class="position-relative">
+
+            <button class="carousel-control-prev" id="prevBtn">
+                <span class="carousel-control-prev-icon"></span>
+            </button>
+
+            <button class="carousel-control-next" id="nextBtn">
+                <span class="carousel-control-next-icon"></span>
+            </button>
+
+            <div class="carousel-wrapper overflow-hidden">
+                <div class="movies-container d-flex" id="carouselMoviesContainer">
+                    <!-- JS вставит карточки сюда -->
+                </div>
+            </div>
+
+        </div>
+    </div>
+    <div class="carousel-dots" id="carouselDotsContainer">
+    </div>
+</div>
+<h2 class="mt-4">НОВИНКИ</h2>
+<div class="row" id="newFilmsContainer">
+    <!-- Сюда вставятся карточки -->
+</div>
+<section class="py-5">
+    <div class="container">
+        <h2 class="mb-4 text-center">Watch the Best New Movies and Series Online</h2>
+        <p>
+            If you're a true film enthusiast looking for the latest movies and series online, welcome to <strong>MediaBuddy</strong>.
+            Our platform is designed for viewers who appreciate quality content and a smooth, ad-free experience.
+            With an easy-to-use interface and high-speed playback, watching movies becomes a real pleasure.
+        </p>
+        <p>
+            Explore a wide range of genres — action, drama, comedy, romance, thrillers, fantasy, anime, and more.
+            Whether you're in the mood for a blockbuster, a hidden gem, or a cozy TV show to unwind with, MediaBuddy has something for everyone.
+        </p>
+        <h3 class="mt-5 mb-3">New Films and Series in HD – Free and Accessible</h3>
+        <p>
+            Our catalog is constantly updated with the newest releases alongside all-time classics.
+            From Hollywood hits to international dramas, animated films, and Japanese anime — you’ll find it all here.
+            With no subscriptions or accounts required, watching is fast and hassle-free.
+        </p>
+        <h3 class="mt-5 mb-3">Enjoy Streaming Without Ads or Registration</h3>
+        <p>
+            MediaBuddy lets you watch your favorite content anytime, anywhere, in high definition and with great sound.
+            No pop-ups, no waiting. Just click and enjoy. Our player supports both desktop and mobile viewing,
+            so you can dive into the world of cinema wherever you are.
+        </p>
+        <p class="mt-4 text-center fw-bold">
+            Discover the world of entertainment with <strong>MediaBuddy</strong> — your free, fast, and fun movie platform.
+        </p>
+    </div>
+</section>
+
+<script type="text/javascript" th:src="@{/js/menu_navy.js}"></script>
+<script type="text/javascript" th:src="@{/js/carouselFilms.js}"></script>
+<script type="text/javascript" th:src="@{/js/allNewFilms.js}"></script>
+<iframe src="/chat/chat-widget.html"
+        title="Онлайн Помощник"
+        style="border: none !important;                          /* Убираем рамку окончательно */
+               background-color: transparent !important;       /* Фон iframe абсолютно прозрачный */
+               position: fixed !important;                     /* Сам iframe будет зафиксирован в углу */
+               bottom: 0px !important;                         /* Прижимаем к правому нижнему углу */
+               right: 0px !important;
+               width: 380px !important;                        /* Ширина, достаточная для окна чата (350px) + отступы */
+               height: 620px !important;                       /* Высота, достаточная для окна чата (500px) + кнопка снизу + отступы */
+               z-index: 1999 !important;                       /* z-index для iframe (чуть ниже чем у элементов чата) */
+               pointer-events: auto !important;                /* Разрешаем клики в iframe */
+              "
+        allowtransparency="true">
+</iframe>
+</body>
+<footer>This is footer</footer>
+</html>

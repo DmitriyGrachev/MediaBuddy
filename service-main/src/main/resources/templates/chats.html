@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Application</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .chat-container {
+            max-width: 1200px;
+            margin: 20px auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+        }
+
+        .chat-header {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .chat-sidebar {
+            background: #f8f9fa;
+            border-right: 1px solid #e9ecef;
+            height: 600px;
+            overflow-y: auto;
+        }
+
+        .chat-list-item {
+            padding: 15px;
+            border-bottom: 1px solid #e9ecef;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .chat-list-item:hover {
+            background: #e9ecef;
+            transform: translateX(5px);
+        }
+
+        .chat-list-item.active {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+        }
+
+        .chat-main {
+            height: 600px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: #f8f9fa;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message.sent {
+            text-align: right;
+        }
+
+        .message.received {
+            text-align: left;
+        }
+
+        .message-bubble {
+            display: inline-block;
+            max-width: 70%;
+            padding: 12px 18px;
+            border-radius: 20px;
+            word-wrap: break-word;
+            position: relative;
+        }
+
+        .message.sent .message-bubble {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .message.received .message-bubble {
+            background: white;
+            color: #333;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .message-time {
+            font-size: 0.8em;
+            opacity: 0.7;
+            margin-top: 5px;
+        }
+
+        .chat-input-container {
+            padding: 20px;
+            background: white;
+            border-top: 1px solid #e9ecef;
+        }
+
+        .message-input {
+            border: 2px solid #e9ecef;
+            border-radius: 25px;
+            padding: 12px 20px;
+            transition: all 0.3s ease;
+        }
+
+        .message-input:focus {
+            border-color: #4facfe;
+            box-shadow: 0 0 0 0.2rem rgba(79, 172, 254, 0.25);
+        }
+
+        .send-btn {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            color: white;
+            transition: all 0.3s ease;
+        }
+
+        .send-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 5px 15px rgba(79, 172, 254, 0.4);
+        }
+
+        .connection-status {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 10px 15px;
+            border-radius: 20px;
+            color: white;
+            font-weight: bold;
+            z-index: 1050;
+        }
+
+        .status-connected {
+            background: #28a745;
+        }
+
+        .status-disconnected {
+            background: #dc3545;
+        }
+
+        .status-connecting {
+            background: #ffc107;
+            color: #333;
+        }
+
+        .user-list {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .user-item {
+            padding: 10px 15px;
+            cursor: pointer;
+            border-bottom: 1px solid #e9ecef;
+            transition: background 0.3s ease;
+        }
+
+        .user-item:hover {
+            background: #e9ecef;
+        }
+
+        .online-indicator {
+            width: 10px;
+            height: 10px;
+            background: #28a745;
+            border-radius: 50%;
+            display: inline-block;
+            margin-left: 10px;
+        }
+
+        .no-chat-selected {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #6c757d;
+            font-size: 1.2em;
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+        }
+
+        .btn-gradient {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            border: none;
+            color: white;
+            transition: all 0.3s ease;
+        }
+
+        .btn-gradient:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(79, 172, 254, 0.4);
+            color: white;
+        }
+        .chat-list-item.online .status-indicator { color: limegreen; }
+        .chat-list-item.offline .status-indicator { color: gray; }
+        .status-indicator { font-size: 0.8em; line-height: 1; }
+
+    </style>
+</head>
+<body>
+<!-- TODO Проблема с тем что вебсокет отрываеться в навигации и при обновлении странички сбрасываеться статус онлайн у пользователя -->
+<!-- TODO Хотя если подождать то все гуд -->
+<header>
+    <div th:insert="~{menunavy::navy}"></div>
+</header>
+<!-- Connection Status -->
+<div id="connectionStatus" class="connection-status status-disconnected">
+    <i class="fas fa-circle"></i> Отключено
+</div>
+
+<!-- Main Chat Container -->
+<div class="container-fluid">
+    <div class="chat-container">
+        <!-- Header -->
+        <div class="chat-header">
+            <h2><i class="fas fa-comments"></i> Chat Application</h2>
+            <button class="btn btn-light btn-sm" data-bs-toggle="modal" data-bs-target="#newChatModal">
+                <i class="fas fa-plus"></i> Новый чат
+            </button>
+        </div>
+
+        <div class="row g-0">
+            <!-- Sidebar with chat list -->
+            <div class="col-md-4 chat-sidebar">
+                <div class="p-3">
+                    <h5><i class="fas fa-list"></i> Мои чаты</h5>
+                </div>
+                <div id="chatList">
+                    <!-- Chat list will be populated here -->
+                    <div class="text-center p-4 text-muted">
+                        <i class="fas fa-comment-slash fa-2x mb-2"></i>
+                        <p>Нет активных чатов</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main chat area -->
+            <div class="col-md-8 chat-main">
+                <div id="noChatSelected" class="no-chat-selected">
+                    <div class="text-center">
+                        <i class="fas fa-comment-dots fa-3x mb-3 text-muted"></i>
+                        <p>Выберите чат для начала общения</p>
+                    </div>
+                </div>
+
+                <div id="chatArea" style="display: none;">
+                    <!-- Chat messages -->
+                    <div id="chatMessages" class="chat-messages">
+                        <!-- Messages will be populated here -->
+                    </div>
+
+                    <!-- Message input -->
+                    <div class="chat-input-container">
+                        <div class="row g-2 align-items-center">
+                            <div class="col">
+                                <input type="text" id="messageInput" class="form-control message-input"
+                                       placeholder="Введите сообщение..." maxlength="500">
+                            </div>
+                            <div class="col-auto">
+                                <button id="sendButton" class="btn send-btn" type="button">
+                                    <i class="fas fa-paper-plane"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- New Chat Modal -->
+<div class="modal fade" id="newChatModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-user-plus"></i> Создать новый чат</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Выберите пользователя:</label>
+                    <div id="userList" class="user-list border rounded">
+                        <!-- Users will be populated here -->
+                        <div class="text-center p-3">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Загрузка...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" id="createChatBtn" class="btn btn-gradient" disabled>Создать чат</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Scripts -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.6.1/sockjs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+
+<script>
+    class ChatApplication {
+        constructor() {
+            this.stompClient = null;
+            this.currentUser = null;
+            this.currentChatRoom = null;
+            this.currentSubscription = null; // Добавлено для управления подписками
+            this.isConnected = false;
+            this.token = sessionStorage.getItem('token');
+
+            this.initializeElements();
+            this.attachEventListeners();
+            this.loadUserProfile();
+        }
+
+        initializeElements() {
+            this.elements = {
+                connectionStatus: document.getElementById('connectionStatus'),
+                chatList: document.getElementById('chatList'),
+                chatMessages: document.getElementById('chatMessages'),
+                messageInput: document.getElementById('messageInput'),
+                sendButton: document.getElementById('sendButton'),
+                noChatSelected: document.getElementById('noChatSelected'),
+                chatArea: document.getElementById('chatArea'),
+                userList: document.getElementById('userList'),
+                createChatBtn: document.getElementById('createChatBtn'),
+                newChatModal: new bootstrap.Modal(document.getElementById('newChatModal'))
+            };
+        }
+
+        attachEventListeners() {
+            this.elements.sendButton.addEventListener('click', () => this.sendMessage());
+            this.elements.messageInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') this.sendMessage();
+            });
+            document.getElementById('createChatBtn').addEventListener('click', () => this.createNewChat());
+            document.getElementById('newChatModal').addEventListener('shown.bs.modal', () => this.loadAllUsers());
+        }
+
+        async loadUserProfile() {
+            try {
+                const response = await fetch('/api/user/profile', {
+                    headers: { 'Authorization': `Bearer ${this.token}` }
+                });
+                if (response.ok) {
+                    this.currentUser = await response.json();
+                    this.connect(); // Подключаемся после получения профиля
+                    this.loadChats();
+                } else {
+                    this.showError('Ошибка загрузки профиля. Попробуйте войти снова.');
+                }
+            } catch (error) {
+                console.error('Error loading user profile:', error);
+                this.showError('Ошибка подключения к серверу');
+            }
+        }
+
+        connect() {
+            if (!this.token) {
+                this.showError('Токен аутентификации не найден');
+                return;
+            }
+            this.updateConnectionStatus('connecting', 'Подключение...');
+            const socket = new SockJS(`/ws?token=${this.token}`);
+            this.stompClient = Stomp.over(socket);
+            this.stompClient.debug = null; // Отключаем логгирование в консоль
+
+            this.stompClient.connect({},
+                (frame) => {
+                    this.isConnected = true;
+                    this.updateConnectionStatus('connected', 'Подключено');
+                    this.subscribeToUserStatus();
+                    console.log('Connected: ' + frame);
+                },
+                (error) => {
+                    this.isConnected = false;
+                    this.updateConnectionStatus('disconnected', 'Ошибка подключения');
+                    console.error('Connection error:', error);
+                    setTimeout(() => this.connect(), 5000); // Повторная попытка
+                }
+            );
+        }
+
+        subscribeToUserStatus() {
+            this.stompClient.subscribe('/topic/user-status', (message) => {
+                const payload = JSON.parse(message.body);
+                // ожидаем структуру { type:"status", user: "username", online: true/false }
+                if (payload.type === 'status') {
+                    this.updateUserStatusIndicator(payload.user, payload.online);
+                }
+            });
+        }
+        updateUserStatusIndicator(username, online) {
+            // Ищем элементы списка чатов по правильному атрибуту
+            const chatItems = document.querySelectorAll(`.chat-list-item[data-other-username="${username}"]`);
+
+            chatItems.forEach(item => {
+                // Находим сам индикатор внутри элемента
+                const indicator = item.querySelector('.status-indicator');
+                if (indicator) {
+                    if (online) {
+                        indicator.classList.add('online');
+                        indicator.classList.remove('offline');
+                        indicator.textContent = '●'; // Заполненный кружок
+                        indicator.style.color = 'limegreen';
+                    } else {
+                        indicator.classList.add('offline');
+                        indicator.classList.remove('online');
+                        indicator.textContent = '○'; // Пустой кружок
+                        indicator.style.color = 'gray';
+                    }
+                }
+            });
+        }
+
+        // ✨ ИЗМЕНЕНИЕ #1: Логика отправки сообщения
+        // Убираем немедленное отображение. Просто отправляем данные на сервер.
+        sendMessage() {
+            const messageText = this.elements.messageInput.value.trim();
+            if (messageText && this.currentChatRoom && this.stompClient && this.isConnected) {
+                const destination = `/app/private/${this.currentChatRoom}`;
+
+                // Отправляем сообщение на сервер
+                this.stompClient.send(destination, {}, messageText);
+
+                // Очищаем поле ввода
+                this.elements.messageInput.value = '';
+            }
+        }
+
+        // ✨ ИЗМЕНЕНИЕ #2: Логика подписки и обработки входящих сообщений
+        // Теперь это единственный источник для отображения НОВЫХ сообщений.
+        subscribeToChat(roomId) {
+            // Отписываемся от предыдущей комнаты, чтобы не получать сообщения из старых чатов
+            if (this.currentSubscription) {
+                this.currentSubscription.unsubscribe();
+            }
+
+            if (this.stompClient && this.isConnected) {
+                const destination = `/user/queue/private.${roomId}`;
+                console.log(`Subscribing to (new): ${destination}`); // Для отладки
+
+                this.currentSubscription = this.stompClient.subscribe(destination, (message) => {
+                    console.log(`Received message on ${destination}:`, message.body);
+
+                    // Парсим DTO из тела сообщения
+                    const messageDto = JSON.parse(message.body);
+
+                    // Определяем, наше ли это сообщение, сравнивая имена пользователей
+                    const isOwn = messageDto.senderUsername === this.currentUser.username;
+
+                    // Отображаем сообщение с правильным флагом
+                    this.displayMessage(messageDto, isOwn);
+                    this.scrollToBottom();
+                });
+            } else {
+                console.error("Cannot subscribe, STOMP client not connected.");
+            }
+        }
+
+        // ✨ ИЗМЕНЕНИЕ #3: Отображение сообщения теперь всегда работает с DTO-объектом
+        // Это делает код более надежным и предсказуемым.
+        displayMessage(messageDto, isOwn) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isOwn ? 'sent' : 'received'}`;
+
+            const time = new Date(messageDto.dateTime).toLocaleTimeString('ru-RU', {
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+
+            // Используем поля из DTO-объекта
+            messageDiv.innerHTML = `
+            <div class="message-bubble">
+                ${messageDto.message}
+                <div class="message-time">${time}</div>
+            </div>
+        `;
+
+            this.elements.chatMessages.appendChild(messageDiv);
+        }
+
+
+        // --- Остальной код остается практически без изменений, но я привожу его для полноты ---
+
+        async loadChats() {
+            try {
+                const response = await fetch('/api/chat/getAllChats', {
+                    headers: { 'Authorization': `Bearer ${this.token}` }
+                });
+                if (response.ok) {
+                    const chats = await response.json();
+                    this.displayChats(chats);
+                } else {
+                    console.error('Error loading chats');
+                }
+            } catch (error) {
+                console.error('Error loading chats:', error);
+            }
+        }
+
+        async displayChats(chats) {
+            if (chats.length === 0) {
+                this.elements.chatList.innerHTML = `
+          <div class="text-center p-4 text-muted">
+            <i class="fas fa-comment-slash fa-2x mb-2"></i>
+            <p>Нет активных чатов</p>
+          </div>`;
+                return;
+            }
+
+            this.elements.chatList.innerHTML = chats.map(chat => {
+                const otherUser = chat.user1.id === this.currentUser.id ? chat.user2 : chat.user1;
+                // Мы изначально не знаем статус, поэтому ставим 'offline' по умолчанию
+                return `
+        <div class="chat-list-item" data-room-id="${chat.id}" data-other-username="${otherUser.username}">
+          <div class="d-flex align-items-center">
+
+            <span class="status-indicator offline" style="color: gray; margin-right: 8px;">○</span>
+
+            <div class="flex-grow-1">
+              <h6 class="mb-1">${otherUser.firstName} ${otherUser.lastName}</h6>
+              <small class="text-muted">@${otherUser.username}</small>
+            </div>
+          </div>
+        </div>`;
+            }).join('');
+
+            // навешиваем клики
+            document.querySelectorAll('.chat-list-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    document.querySelectorAll('.chat-list-item').forEach(i => i.classList.remove('active'));
+                    item.classList.add('active');
+                    this.selectChat(item.dataset.roomId, item.dataset.otherUsername);
+                });
+            });
+            await this.fetchAndApplyInitialUserStatuses();
+
+        }
+
+        async selectChat(roomId, otherUserName) {
+            this.currentChatRoom = roomId;
+            this.elements.noChatSelected.style.display = 'none';
+            this.elements.chatArea.style.display = 'flex';
+            // Тут можно было бы обновить заголовок чата именем собеседника
+
+            await this.loadChatHistory(roomId); // Сначала загружаем историю
+            this.subscribeToChat(roomId); // Потом подписываемся на новые сообщения
+        }
+
+        async loadChatHistory(roomId) {
+            this.elements.chatMessages.innerHTML = ''; // Очищаем предыдущую историю
+            try {
+                const response = await fetch(`/api/chat/chat/${roomId}`, {
+                    headers: { 'Authorization': `Bearer ${this.token}` }
+                });
+                if (response.ok) {
+                    // 'messages' is now an array of ChatMessageDto
+                    const messages = await response.json();
+
+                    messages.forEach(msg => {
+                        // ✨ CORRECT: Compare usernames, just like you do for new messages.
+                        const isOwn = msg.senderUsername === this.currentUser.username;
+
+                        // Now we pass the DTO (msg) to the display function.
+                        this.displayMessage(msg, isOwn);
+                    });
+                    this.scrollToBottom();
+                }
+            } catch (error)        {
+                console.error('Error loading chat history:', error);
+            }
+        }
+
+        async loadAllUsers() {
+            try {
+                const response = await fetch('/api/user/allUsers', {
+                    headers: {
+                        'Authorization': `Bearer ${this.token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    const users = await response.json();
+                    this.displayUsers(users.filter(user => user.id !== this.currentUser.id));
+                }
+            } catch (error) {
+                console.error('Error loading users:', error);
+                this.elements.userList.innerHTML = `
+                        <div class="text-center p-3 text-danger">
+                            <i class="fas fa-exclamation-triangle"></i> Ошибка загрузки пользователей
+                        </div>
+                    `;
+            }
+        }
+
+        displayUsers(users) {
+            if (users.length === 0) {
+                this.elements.userList.innerHTML = `
+                        <div class="text-center p-3 text-muted">
+                            <i class="fas fa-users"></i> Нет доступных пользователей
+                        </div>
+                    `;
+                return;
+            }
+
+            this.elements.userList.innerHTML = users.map(user => `
+                    <div class="user-item" data-user-id="${user.id}">
+                        <div class="d-flex align-items-center">
+                            <div class="flex-grow-1">
+                                <h6 class="mb-1">${user.firstName} ${user.lastName}</h6>
+                                <small class="text-muted">@${user.username}</small>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+
+            // Add click listeners
+            document.querySelectorAll('.user-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    document.querySelectorAll('.user-item').forEach(i => i.classList.remove('bg-primary', 'text-white'));
+                    item.classList.add('bg-primary', 'text-white');
+
+                    this.selectedUserId = item.dataset.userId;
+                    this.elements.createChatBtn.disabled = false;
+                });
+            });
+        }
+        async fetchAndApplyInitialUserStatuses() {
+            const usernamesToQuery = new Set();
+            // Collect all unique usernames from the chat list items that are currently displayed
+            document.querySelectorAll('.chat-list-item').forEach(item => {
+                const otherUsername = item.dataset.otherUsername;
+                if (otherUsername) { // Ensure the data attribute exists
+                    usernamesToQuery.add(otherUsername);
+                }
+            });
+
+            if (usernamesToQuery.size === 0) {
+                console.log("ChatApplication: No users to query for initial status.");
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/chat/onlineStatusesBulk', { // Use your new backend endpoint
+                    method: 'POST', // It's a POST because you're sending a list of usernames
+                    headers: {
+                        'Authorization': `Bearer ${this.token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(Array.from(usernamesToQuery)) // Send array of usernames
+                });
+
+                if (response.ok) {
+                    const statuses = await response.json(); // Expected: { "username1": true, "username2": false, ... }
+                    console.log("ChatApplication: Received initial user statuses:", statuses);
+                    for (const username in statuses) {
+                        // Apply the status to the corresponding chat list item
+                        this.updateUserStatusIndicator(username, statuses[username]);
+                    }
+                } else {
+                    console.error("ChatApplication: Failed to fetch initial user statuses. Status:", response.status);
+                }
+            } catch (error) {
+                console.error("ChatApplication: Error fetching initial user statuses:", error);
+            }
+        }
+
+        async createNewChat() {
+            if (!this.selectedUserId) return;
+
+            try {
+                const response = await fetch('/api/chat/create', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${this.token}`,
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: `user1Id=${this.currentUser.id}&user2Id=${this.selectedUserId}`
+                });
+
+                if (response.ok) {
+                    const chatRoomId = await response.json();
+                    this.elements.newChatModal.hide();
+                    this.loadChats(); // Reload chat list
+                    this.showSuccess('Чат успешно создан!');
+                } else {
+                    this.showError('Ошибка создания чата');
+                }
+            } catch (error) {
+                console.error('Error creating chat:', error);
+                this.showError('Ошибка создания чата');
+            }
+        }
+
+        scrollToBottom() {
+            this.elements.chatMessages.scrollTop = this.elements.chatMessages.scrollHeight;
+        }
+
+        updateConnectionStatus(status, text) {
+            this.elements.connectionStatus.className = `connection-status status-${status}`;
+            this.elements.connectionStatus.innerHTML = `<i class="fas fa-circle"></i> ${text}`;
+        }
+
+        showError(message) { alert('Ошибка: ' + message); }
+        showSuccess(message) { /* Ваша реализация */ }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        new ChatApplication();
+    });
+</script>
+</body>
+</html>

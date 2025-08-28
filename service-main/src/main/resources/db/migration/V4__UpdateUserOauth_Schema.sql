@@ -1,0 +1,2 @@
+ALTER TABLE users ADD provider VARCHAR(255);
+ALTER TABLE users ADD providerId VARCHAR(255);

@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Фильмы - MediaBuddy</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" th:href="@{/css/styles.css}">
+
+    <style>
+        body {
+            background-color: #f8f9fa; /* Светлый фон для страницы */
+        }
+        .movie-card {
+            margin-bottom: 20px;
+            transition: transform 0.2s ease-in-out;
+            height: 100%; /* Для одинаковой высоты карточек в ряду */
+        }
+        .movie-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 16px rgba(0,0,0,0.15);
+        }
+        .card-img-top-wrapper {
+            height: 400px; /* Фиксированная высота для обертки изображения */
+            overflow: hidden;
+            display: flex;
+            align-items: center; /* Центрирование изображения, если оно меньше */
+            justify-content: center;
+        }
+        .card-img-top {
+            width: 100%;
+            height: auto;   /* Изображение будет масштабироваться по ширине, сохраняя пропорции */
+            max-height: 100%; /* Изображение не будет выше обертки */
+            object-fit: cover; /* Или 'contain', в зависимости от желаемого эффекта */
+        }
+        .card-body {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between; /* Распределяет пространство внутри card-body */
+        }
+        .card-title {
+            font-size: 1.1rem;
+            font-weight: bold;
+            min-height: 44px; /* Примерная высота для двух строк названия */
+        }
+        .card-text small {
+            display: block; /* Каждый элемент на новой строке */
+        }
+        .genres span {
+            margin-right: 5px;
+        }
+        #loadingIndicator {
+            display: none; /* Скрыт по умолчанию */
+            text-align: center;
+            padding: 20px;
+        }
+        .pagination-controls {
+            margin-top: 20px;
+            margin-bottom: 40px;
+        }
+        /* Стили для карусели */
+        .movie-carousel {
+            position: relative;
+            width: 100%;
+            margin-bottom: 40px;
+        }
+        .carousel-wrapper {
+            overflow: hidden;
+            width: 100%;
+        }
+        .movies-container {
+            display: flex;
+            transition: transform 0.5s ease;
+        }
+        .movie-card {
+            flex: 0 0 calc(100% / 5); /* 5 карточек видно одновременно */
+            padding: 10px;
+            box-sizing: border-box;
+        }
+        .carousel-control-prev,
+        .carousel-control-next {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 40px;
+            height: 40px;
+            background-color: rgba(0, 0, 0, 0.5);
+            border: none;
+            cursor: pointer;
+            z-index: 1;
+        }
+        .carousel-control-prev {
+            left: 10px;
+        }
+        .carousel-control-next {
+            right: 10px;
+        }
+        .carousel-control-prev-icon,
+        .carousel-control-next-icon {
+            width: 20px;
+            height: 20px;
+            background-size: 100%, 100%;
+        }
+        .carousel-dots {
+            text-align: center;
+            margin-top: 10px;
+        }
+        .carousel-dot {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            margin: 0 5px;
+            background-color: #ccc;
+            border-radius: 50%;
+            cursor: pointer;
+            border: none;
+        }
+        .carousel-dot.active {
+            background-color: #007bff;
+        }
+    </style>
+</head>
+<body>
+
+<header th:insert="~{menunavy::navy}"></header>
+
+<main class="container mt-4">
+    <!-- Карусель -->
+    <div class="container my-5">
+        <div class="movie-carousel">
+            <h2>Most relevant</h2>
+            <div class="position-relative">
+                <button class="carousel-control-prev" id="prevBtn">
+                    <span class="carousel-control-prev-icon"></span>
+                </button>
+                <button class="carousel-control-next" id="nextBtn">
+                    <span class="carousel-control-next-icon"></span>
+                </button>
+                <div class="carousel-wrapper overflow-hidden">
+                    <div class="movies-container d-flex" id="carouselMoviesContainer">
+                        <!-- JS вставит карточки сюда -->
+                    </div>
+                </div>
+            </div>
+            <div class="carousel-dots" id="carouselDotsContainer"></div>
+        </div>
+    </div>
+
+    <h1 id="pageTitle" class="mb-4">Все фильмы</h1>
+
+    <div id="loadingIndicator">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Загрузка...</span>
+        </div>
+    </div>
+
+    <div id="moviesListContainer" class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 row-cols-xl-5 g-4">
+    </div>
+
+    <nav aria-label="Page navigation" class="pagination-controls">
+        <ul class="pagination justify-content-center" id="paginationContainer">
+        </ul>
+    </nav>
+</main>
+
+<footer class="bg-dark text-white text-center p-3 mt-5">
+    <p>© 2025 MediaBuddy. Все права защищены.</p>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script th:src="@{/js/moviesPage.js}"></script>
+<script th:src="@{/js/menu_navy.js}"></script>
+<script th:src="@{/js/carouselMovies.js}"></script>
+
+</body>
+</html>

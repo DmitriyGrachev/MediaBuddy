@@ -1,0 +1,170 @@
+/* chat-widget.css - ПОЛНЫЙ ФАЙЛ СТИЛЕЙ */
+body, html {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+    background-color: transparent; /* Важно для iframe, чтобы его фон был прозрачным */
+}
+
+/* Общий контейнер для всего виджета */
+.chat-widget-container {
+    pointer-events: auto !important; /* Этот контейнер будет реагировать на события мыши */
+}
+
+/* Кнопка для открытия/закрытия чата */
+.chat-toggle-button {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    z-index: 2000; /* Должен быть ВЫШЕ z-index iframe (у iframe 1999) */
+    transition: background-color 0.3s ease, transform 0.2s ease;
+    pointer-events: auto !important; /* КРИТИЧЕСКИ ВАЖНО для кликабельности */
+}
+
+.chat-toggle-button:hover {
+    background-color: #0056b3;
+    transform: scale(1.1);
+}
+
+/* Окно чата */
+.chat-window {
+    position: fixed;
+    bottom: 90px; /* Расположено над кнопкой открытия */
+    right: 20px;
+    width: 350px;
+    max-height: calc(100vh - 110px); /* Ограничение по высоте, чтобы не вылезать за экран */
+    height: 500px;
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden; /* Важно, чтобы дочерние элементы скруглялись по радиусу родителя */
+    z-index: 2000; /* Должен быть ВЫШЕ z-index iframe */
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto !important; /* КРИТИЧЕСКИ ВАЖНО для интерактивности, когда окно видимо */
+}
+
+/* Стили для СКРЫТОГО окна чата */
+.chat-window.hidden { /* Этот класс добавляется/удаляется через JS */
+    opacity: 0;
+    transform: translateY(20px);
+    pointer-events: none !important; /* Правильно: не интерактивно, когда скрыто */
+    display: none !important; /* Полностью скрываем элемент */
+}
+
+.chat-header {
+    padding: 12px 15px;
+    background: #007bff;
+    color: white;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.chat-header span {
+    font-weight: bold;
+    font-size: 1.1em;
+}
+
+.chat-close-button { /* Кнопка закрытия чата */
+    background: none;
+    border: none;
+    color: white;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 0 5px;
+    line-height: 1;
+    pointer-events: auto; /* Явно разрешаем клики */
+}
+
+.chat-messages {
+    flex-grow: 1;
+    padding: 15px;
+    overflow-y: auto;
+    background-color: #f9f9f9;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.message {
+    padding: 10px 15px;
+    border-radius: 18px;
+    max-width: 85%;
+    word-wrap: break-word;
+    line-height: 1.4;
+}
+
+.message.user {
+    background-color: #007bff;
+    color: white;
+    align-self: flex-end;
+    border-bottom-right-radius: 5px;
+}
+
+.message.assistant {
+    background-color: #e9ecef;
+    color: #333;
+    align-self: flex-start;
+    border-bottom-left-radius: 5px;
+}
+
+.chat-input-area {
+    display: flex;
+    padding: 10px 15px;
+    border-top: 1px solid #ddd;
+    background-color: #ffffff;
+}
+
+.chat-input-area input { /* Поле ввода текста */
+    flex-grow: 1;
+    padding: 10px 15px;
+    border: 1px solid #ccc;
+    border-radius: 20px;
+    margin-right: 10px;
+    font-size: 1em;
+    outline: none;
+    pointer-events: auto; /* Явно разрешаем взаимодействие */
+}
+
+.chat-input-area input:focus {
+    border-color: #007bff;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.chat-input-area button { /* Кнопка "Отправить" */
+    padding: 10px 20px;
+    background: #007bff;
+    color: white;
+    border: none;
+    border-radius: 20px;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 1em;
+    transition: background-color 0.3s ease;
+    pointer-events: auto; /* Явно разрешаем клики */
+}
+
+.chat-input-area button:hover {
+    background: #0056b3;
+}
+
+/* Утилитарный класс для скрытия элементов (используется в JavaScript) */
+.hidden {
+    display: none !important;
+}

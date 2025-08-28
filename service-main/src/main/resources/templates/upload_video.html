@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Моё видео-приложение</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; max-width: 800px; margin: 1em auto; background-color: #f4f4f9; color: #333; }
+    .card { background-color: #fff; margin-bottom: 2em; padding: 1.5em; border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+    h1, h2 { border-bottom: 2px solid #eee; padding-bottom: 0.3em; }
+    form label { display: block; margin-bottom: 0.8em; font-weight: 500; }
+    input[type="text"], textarea, select { width: 98%; padding: 10px; border-radius: 4px; border: 1px solid #ccc; }
+    button { background-color: #007bff; color: white; padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; font-size: 1em; }
+    button:hover { background-color: #0056b3; }
+    button.secondary { background-color: #6c757d; }
+    button.secondary:hover { background-color: #5a6268; }
+    .video-card { background-color: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 1em; margin-bottom: 1.5em; }
+    .thumbnail { max-width: 200px; display: block; margin-bottom: 1em; border-radius: 4px; }
+    video { max-width: 100%; display: block; border-radius: 4px; }
+    .message { margin-top: 1em; color: green; }
+    .error { color: red; }
+    .tags-container, .manage-tags-list { margin: 1em 0; }
+    .tag { display: inline-block; background-color: #e1e1e1; color: #333; padding: 4px 10px; border-radius: 12px; margin: 0 5px 5px 0; font-size: 0.9em; }
+    .manage-tag-item { display: flex; justify-content: space-between; align-items: center; padding: 5px; border-bottom: 1px solid #eee; }
+    .delete-tag-btn { background: none; border: none; cursor: pointer; font-size: 1.2em; padding: 0 5px; }
+    .checkbox-group { display: flex; flex-wrap: wrap; gap: 15px; background-color: #f9f9f9; padding: 10px; border-radius: 4px; border: 1px solid #eee; }
+    .checkbox-group label { font-weight: normal; }
+    .filter-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1em; }
+  </style>
+</head>
+<body>
+
+<h1>Моё видео-приложение</h1>
+
+<div class="card">
+  <h2>Управление тегами</h2>
+  <form id="newTagForm">
+    <label for="newTagName">Создать новый тег:</label>
+    <input type="text" id="newTagName" name="tag" placeholder="Название тега" required>
+    <br><br>
+    <button type="submit">Добавить тег</button>
+    <div id="newTagMessage" class="message"></div>
+  </form>
+  <hr>
+  <h4>Существующие теги:</h4>
+  <div id="manageTagsContainer">
+    <p>Загрузка...</p>
+  </div>
+</div>
+
+<div class="card">
+  <h2>Загрузить новое видео</h2>
+  <form id="uploadForm">
+    <label for="title">Название:</label>
+    <input type="text" id="title" name="title" required>
+    <label for="description">Описание:</label>
+    <textarea id="description" name="description" rows="3" required></textarea>
+    <label>Выберите теги для видео:</label>
+    <div id="tagsForUploadContainer" class="checkbox-group"></div>
+    <label>Выберите качество для обработки:</label>
+    <div class="checkbox-group">
+      <label><input type="checkbox" name="qualities" value="480p" checked> 480p</label>
+      <label><input type="checkbox" name="qualities" value="720p" checked> 720p</label>
+    </div>
+    <label for="videoFile">Выберите видеофайл:</label>
+    <input type="file" id="videoFile" name="video" accept="video/*" required>
+    <br><br>
+    <button type="submit">Загрузить видео</button>
+    <div id="uploadMessage" class="message"></div>
+  </form>
+</div>
+
+<div class="card">
+  <h2>Фильтрация и Сортировка</h2>
+  <form id="filterForm">
+    <label for="filterTitle">Название содержит:</label>
+    <input type="text" id="filterTitle" name="title">
+
+    <label>Фильтр по тегам:</label>
+    <div id="tagsForFilterContainer" class="checkbox-group"></div>
+
+    <div class="filter-grid">
+      <div>
+        <label for="sortBy">Сортировать по:</label>
+        <select id="sortBy" name="sortBy">
+          <option value="createdAt">Дате создания</option>
+          <option value="title">Названию</option>
+        </select>
+      </div>
+      <div>
+        <label for="direction">Направление:</label>
+        <select id="direction" name="direction">
+          <option value="DESC">По убыванию</option>
+          <option value="ASC">По возрастанию</option>
+        </select>
+      </div>
+    </div>
+    <br>
+    <button type="submit">Применить фильтр</button>
+    <button type="reset" class="secondary">Сбросить</button>
+  </form>
+</div>
+
+<h2>Мои видео</h2>
+<div id="videosContainer"></div>
+
+<script>
+  const token = sessionStorage.getItem("token");
+  // --- Получаем все нужные элементы DOM ---
+  const newTagForm = document.getElementById('newTagForm');
+  const newTagMessage = document.getElementById('newTagMessage');
+  const manageTagsContainer = document.getElementById('manageTagsContainer');
+  const uploadForm = document.getElementById('uploadForm');
+  const uploadMessage = document.getElementById('uploadMessage');
+  const tagsForUploadContainer = document.getElementById('tagsForUploadContainer');
+  const videosContainer = document.getElementById('videosContainer');
+  const filterForm = document.getElementById('filterForm');
+  const tagsForFilterContainer = document.getElementById('tagsForFilterContainer');
+
+  // --- ОБЩИЕ ФУНКЦИИ ---
+  const authFetch = async (url, opts = {}) => {
+    opts.headers = { ...opts.headers, 'Authorization': `Bearer ${token}` };
+    return fetch(url, opts);
+  };
+
+  // --- ЛОГИКА ТЕГОВ ---
+  const fetchAndRenderAvailableTags = async () => {
+    const containers = [manageTagsContainer, tagsForUploadContainer, tagsForFilterContainer];
+    containers.forEach(c => c.innerHTML = '<p>Обновление...</p>');
+    try {
+      const resp = await authFetch('/api/mpeg/tags');
+      if (!resp.ok) throw new Error(`Ошибка ${resp.status}`);
+      const tags = await resp.json();
+
+      // Очищаем все контейнеры
+      containers.forEach(c => c.innerHTML = '');
+      if (!tags || tags.length === 0) {
+        containers.forEach(c => c.innerHTML = '<p>Теги отсутствуют.</p>');
+        return;
+      }
+
+      tags.forEach(tag => {
+        // 1. Заполняем список управления тегами
+        const manageItem = document.createElement('div');
+        manageItem.className = 'manage-tag-item';
+        manageItem.innerHTML = `<span>${tag}</span><button class="delete-tag-btn" data-tag="${tag}">❌</button>`;
+        manageTagsContainer.append(manageItem);
+
+        // 2. Заполняем чекбоксы для формы загрузки
+        const uploadCheckbox = createTagCheckbox(tag, 'tags-upload');
+        tagsForUploadContainer.append(uploadCheckbox);
+
+        // 3. Заполняем чекбоксы для формы фильтрации
+        const filterCheckbox = createTagCheckbox(tag, 'tags-filter');
+        tagsForFilterContainer.append(filterCheckbox);
+      });
+      // Навешиваем обработчик на кнопки удаления
+      document.querySelectorAll('.delete-tag-btn').forEach(btn => {
+        btn.addEventListener('click', () => handleDeleteTag(btn.dataset.tag));
+      });
+    } catch (err) {
+      containers.forEach(c => c.innerHTML = `<p class="error">Ошибка загрузки тегов: ${err.message}</p>`);
+    }
+  };
+
+  const createTagCheckbox = (tag, name) => {
+    const label = document.createElement('label');
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.name = name;
+    checkbox.value = tag;
+    label.append(checkbox);
+    label.append(document.createTextNode(` ${tag}`));
+    return label;
+  };
+
+  const handleDeleteTag = async (tag) => {
+    if (!confirm(`Вы уверены, что хотите удалить тег "${tag}"?`)) return;
+    try {
+      const resp = await authFetch(`/api/mpeg/tag?tag=${encodeURIComponent(tag)}`, { method: 'DELETE' });
+      if (!resp.ok) throw new Error(`Ошибка сервера: ${resp.status}`);
+      await fetchAndRenderAvailableTags();
+    } catch (err) {
+      alert(`Не удалось удалить тег: ${err.message}`);
+    }
+  };
+
+  newTagForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    newTagMessage.textContent = '';
+    const tag = new FormData(newTagForm).get('tag');
+    try {
+      const resp = await authFetch(`/api/mpeg/tag?tag=${encodeURIComponent(tag)}`, { method: 'POST' });
+      if (!resp.ok) throw new Error(`Ошибка сервера: ${resp.status}`);
+      newTagMessage.textContent = `Тег "${tag}" успешно добавлен!`;
+      newTagForm.reset();
+      await fetchAndRenderAvailableTags();
+    } catch (err) {
+      newTagMessage.textContent = `Ошибка: ${err.message}`;
+      newTagMessage.classList.add('error');
+    }
+  });
+
+  // --- ЛОГИКА ВИДЕО ---
+  const renderVideoList = (videos) => {
+    videosContainer.innerHTML = '';
+    if (!videos || videos.length === 0) {
+      videosContainer.innerHTML = '<p>Видео не найдены.</p>';
+      return;
+    }
+    videos.forEach(v => {
+      const card = document.createElement('div');
+      card.className = 'video-card';
+      let tagsHTML = '';
+      if (v.tags && v.tags.length > 0) {
+        tagsHTML = `<div class="tags-container">${v.tags.map(t => `<span class="tag">${t}</span>`).join('')}</div>`;
+      }
+      card.innerHTML = `
+                <h2>${v.title}</h2>
+                <p>${v.description}</p>
+                ${tagsHTML}
+                ${v.thumbnailUrl ? `<img src="${v.thumbnailUrl}" alt="Thumbnail" class="thumbnail">` : ''}
+                ${(v.videoUrls && Object.keys(v.videoUrls).length > 0) ? `<video controls src="${Object.values(v.videoUrls)[0]}"></video>` : `<p>Статус: ${v.status || 'В обработке'}</p>`}
+            `;
+      videosContainer.append(card);
+    });
+  };
+
+  const fetchAndRenderAllVideos = async () => {
+    videosContainer.innerHTML = '<p>Загрузка видео...</p>';
+    try {
+      const resp = await authFetch('/api/mpeg/videos');
+      if (!resp.ok) throw new Error(`Ошибка ${resp.status}`);
+      const videos = await resp.json();
+      renderVideoList(videos);
+    } catch (err) {
+      videosContainer.innerHTML = `<p class="error">Не удалось загрузить видео: ${err.message}</p>`;
+    }
+  };
+
+  uploadForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    uploadMessage.textContent = 'Загрузка...';
+    const formData = new FormData();
+    formData.append('title', uploadForm.querySelector('#title').value);
+    formData.append('description', uploadForm.querySelector('#description').value);
+    formData.append('video', uploadForm.querySelector('#videoFile').files[0]);
+    uploadForm.querySelectorAll('input[name=qualities]:checked').forEach(c => formData.append('qualities', c.value));
+    uploadForm.querySelectorAll('input[name=tags-upload]:checked').forEach(c => formData.append('tags', c.value));
+    try {
+      const resp = await authFetch('/api/mpeg/upload', { method: 'POST', body: formData });
+      if (!resp.ok) throw new Error(`Ошибка ${resp.status}`);
+      const json = await resp.json();
+      uploadMessage.textContent = json.message || 'Видео отправлено в очередь!';
+      uploadForm.reset();
+      setTimeout(fetchAndRenderAllVideos, 2000);
+    } catch (err) {
+      uploadMessage.textContent = `Ошибка загрузки: ${err.message}`;
+      uploadMessage.classList.add('error');
+    }
+  });
+
+  // --- ЛОГИКА ФИЛЬТРАЦИИ ---
+  filterForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const filterData = {
+      title: filterForm.querySelector('#filterTitle').value.trim(),
+      tags: Array.from(filterForm.querySelectorAll('input[name=tags-filter]:checked')).map(c => c.value),
+      sortBy: filterForm.querySelector('#sortBy').value,
+      direction: filterForm.querySelector('#direction').value
+    };
+    videosContainer.innerHTML = '<p>Применение фильтра...</p>';
+    try {
+      const resp = await authFetch('/api/mpeg/filter', {
+        method: 'POST', // Используем POST для отправки тела запроса
+        headers: { 'Content-Type': 'application/json'},
+        body: JSON.stringify(filterData)
+      });
+      if (resp.status === 404) {
+        renderVideoList([]); // Показываем сообщение "Видео не найдены"
+        return;
+      }
+      if (!resp.ok) throw new Error(`Ошибка сервера: ${resp.status}`);
+      const videos = await resp.json();
+      renderVideoList(videos);
+    } catch (err) {
+      videosContainer.innerHTML = `<p class="error">Ошибка фильтрации: ${err.message}</p>`;
+    }
+  });
+
+  filterForm.addEventListener('reset', () => {
+    fetchAndRenderAllVideos();
+  });
+
+  // --- ПЕРВИЧНАЯ ЗАГРУЗКА СТРАНИЦЫ ---
+  document.addEventListener('DOMContentLoaded', () => {
+    fetchAndRenderAllVideos();
+    fetchAndRenderAvailableTags();
+  });
+</script>
+
+</body>
+</html>

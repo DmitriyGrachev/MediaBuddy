@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Чат-виджет</title>
+    <link rel="stylesheet" href="chat-widget.css">
+</head>
+<body>
+<!-- Общий контейнер для чат-виджета -->
+<div class="chat-widget-container">
+    <!-- Кнопка для открытия чата -->
+    <button id="chat-toggle-button" class="chat-toggle-button">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+        </svg>
+    </button>
+
+    <!-- Окно чата -->
+    <div id="chat-window" class="chat-window hidden">
+        <div class="chat-header">
+            <span>Онлайн помощник</span>
+            <button id="chat-close-button" class="chat-close-button">&times;</button>
+        </div>
+
+        <div id="chat-messages" class="chat-messages">
+            <!-- Сообщения будут добавляться здесь -->
+        </div>
+
+        <div class="chat-input-area">
+            <input type="text" id="user-input" placeholder="Введите сообщение...">
+            <button id="send-button">Отправить</button>
+        </div>
+    </div>
+</div>
+
+<script src="chat-widget.js"></script>
+</body>
+</html>
