@@ -2,3 +2,7 @@
 **/.idea/
 **/.DS_Store
 *.iml
+service-main/src/main/resources/application.properties
+service-streaming/src/main/resources/application.properties
+service-history/src/main/resources/application.properties
+service-compression/src/main/resources/application.properties

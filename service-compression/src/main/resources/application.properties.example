@@ -1,0 +1,27 @@
+# Spring Boot properties (port, RabbitMQ, etc. - keep your existing ones)
+server.port=8088
+
+spring.application.name=MicroserviceForVideoCompression
+
+spring.rabbitmq.host=localhost
+spring.rabbitmq.port=5672
+spring.rabbitmq.username=YOUR_USERNAME
+spring.rabbitmq.password=YOUR_SECRET
+
+app.video.base-path=YOUR_PATH
+
+ffmpeg.docker.command=docker
+ffmpeg.docker.image=jrottenberg/ffmpeg:latest
+
+ffmpeg.compression.options=-c:v libx264 -crf 28 -preset medium -vf scale=iw/2:-2
+
+backblaze.b2.bucket-name=YOUR_BUCKET
+backblaze.b2.endpoint-url=YOUR_URL
+backblaze.b2.region=YOUR_REGION
+backblaze.b2.access-key-id=YOUR_KEY_ID
+backblaze.b2.secret-access-key=YOUR_SECRET
+
+spring.rabbitmq.listener.simple.acknowledge-mode=manual
+spring.rabbitmq.listener.simple.concurrency=3
+
+spring.data.mongodb.uri=YOUR_MONGO_URI

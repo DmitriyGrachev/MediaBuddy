@@ -1,0 +1,70 @@
+# 1) App
+spring.application.name=FilmProject
+server.port=8080
+
+# 2) PostgreSQL datasource
+spring.datasource.url=jdbc:postgresql://localhost:5432/mediabuddy
+spring.datasource.username=YOUR_DB_USER
+spring.datasource.password=YOUR_DB_PASSWORD
+spring.datasource.driver-class-name=org.postgresql.Driver
+
+# 3) JPA / Hibernate
+spring.jpa.database-platform=org.hibernate.dialect.PostgreSQLDialect
+spring.jpa.show-sql=true
+spring.jpa.hibernate.ddl-auto=validate
+
+# 4) Flyway
+spring.flyway.enabled=true
+spring.flyway.locations=classpath:db/migration
+
+jwt.secret=YOUR_JWT_SECRET
+
+# rabbitmq
+spring.rabbitmq.host=localhost
+spring.rabbitmq.port=5672
+spring.rabbitmq.username=YOUR_RABBITMQ_USER
+spring.rabbitmq.password=YOUR_RABBITMQ_PASS
+
+spring.rabbitmq.stream.host=localhost
+spring.rabbitmq.stream.port=5552
+spring.rabbitmq.stream.username=YOUR_RABBITMQ_STREAM_USER
+spring.rabbitmq.stream.password=YOUR_RABBITMQ_STREAM_PASS
+
+spring.data.redis.host=localhost
+spring.data.redis.port=6379
+
+app.video.base-path=/path/to/video_processing
+
+spring.data.mongodb.uri=mongodb://YOUR_MONGO_USER:YOUR_MONGO_PASS@localhost:27017/filmproject?authSource=filmproject&authMechanism=SCRAM-SHA-256
+
+spring.mail.username=YOUR_EMAIL
+spring.mail.password=YOUR_EMAIL_PASS
+spring.mail.host=smtp.gmail.com
+spring.mail.port=587
+spring.mail.properties.mail.smtp.auth=true
+spring.mail.properties.mail.smtp.starttls.enable=true
+
+# backblaze b2
+backblaze.b2.bucket-name=media-buddy
+backblaze.b2.endpoint-url=https://s3.eu-central-003.backblazeb2.com
+backblaze.b2.region=eu-central-003
+backblaze.b2.access-key-id=YOUR_B2_KEY_ID
+backblaze.b2.secret-access-key=YOUR_B2_SECRET
+
+# oauth2
+spring.security.oauth2.client.registration.google.client-id=YOUR_GOOGLE_CLIENT_ID
+spring.security.oauth2.client.registration.google.client-secret=YOUR_GOOGLE_CLIENT_SECRET
+spring.security.oauth2.client.registration.google.redirect-uri=http://localhost:8080/login/oauth2/code/google
+spring.security.oauth2.client.registration.google.scope=profile, email
+
+spring.security.oauth2.client.provider.google.authorization-uri=https://accounts.google.com/o/oauth2/v2/auth
+spring.security.oauth2.client.provider.google.token-uri=https://oauth2.googleapis.com/token
+spring.security.oauth2.client.provider.google.user-info-uri=https://www.googleapis.com/oauth2/v3/userinfo
+spring.security.oauth2.client.provider.google.user-name-attribute=sub
+
+management.endpoints.web.exposure.include=*
+management.endpoint.prometheus.enabled=true
+management.metrics.export.prometheus.enabled=true
+
+logging.level.org.springdoc=DEBUG
+logging.level.org.springdoc.webmvc=DEBUG
