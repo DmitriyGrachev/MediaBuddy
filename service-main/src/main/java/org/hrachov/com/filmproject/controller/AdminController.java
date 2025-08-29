@@ -18,7 +18,7 @@ import java.util.*;
 
 @RestController
 @RequestMapping("/api/admin/")
-@Tag(name = "Админ контроллер", description = "Операции с фильмами,пользователями,OMDB api")
+@Tag(name = "Admin controller", description = "FIlm,users managment , OMDB api")
 @AllArgsConstructor
 public class AdminController {
 
@@ -26,7 +26,7 @@ public class AdminController {
     private final FilmManagementService filmManagementService;
     private final SeasonManagementService seasonManagementService;
     private final EpisodeManagementService episodeManagementService;
-    @Operation(summary = "Получить всех пользователей",description = "Возвращает ВСЕХ пользователей с БД")
+    @Operation(summary = "Get all users",description = "Returns ALL users from db")
     @GetMapping("/all-users")
     public ResponseEntity<List<UserResponseDTO>> getUsers() {
         List<UserResponseDTO> users = userManagementService.getAllUsersWithBlockInfo();
