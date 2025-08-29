@@ -17,7 +17,6 @@ import org.springframework.stereotype.Service;
 
 import java.util.*;
 import java.util.stream.Collectors;
-
 @Service
 public class RecommendationService {
 
@@ -53,6 +52,12 @@ public class RecommendationService {
     public List<String> getRecommendations(String userId, int k, int maxRecommendations, List<String> preferredGenres) {
         // Получаем взаимодействия пользователя
         List<Interaction> userInteractions = interactionRepository.findByUserId(userId);
+
+        // Если у пользователя нет взаимодействий, возвращаем популярные фильмы
+        if (userInteractions.isEmpty()) {
+            return getPopularFilmsByGenres(preferredGenres, maxRecommendations);
+        }
+
         Map<String, Double> userRatingMap = userInteractions.stream()
                 .collect(Collectors.groupingBy(
                         Interaction::getMovieId,
@@ -72,7 +77,9 @@ public class RecommendationService {
         for (String otherUserId : allUserRatings.keySet()) {
             if (!otherUserId.equals(userId)) {
                 double similarity = cosineSimilarity(userRatingMap, allUserRatings.get(otherUserId));
-                similarities.put(otherUserId, similarity);
+                if (similarity > 0) { // Только положительные сходства
+                    similarities.put(otherUserId, similarity);
+                }
             }
         }
 
@@ -95,30 +102,82 @@ public class RecommendationService {
             }
         }
 
+        // Если нет рекомендаций через collaborative filtering, возвращаем популярные
+        if (movieScores.isEmpty()) {
+            return getPopularFilmsByGenres(preferredGenres, maxRecommendations);
+        }
+
         // Фильтруем по жанрам
         return movieScores.entrySet().stream()
                 .sorted(Map.Entry.<String, Double>comparingByValue().reversed())
                 .map(Map.Entry::getKey)
                 .filter(movieId -> {
                     if (preferredGenres == null || preferredGenres.isEmpty()) return true;
-                    Film film = filmRepository.findById(Integer.parseInt(movieId)).orElse(null);
-                    Set<Genre> genres = film.getGenres();
-                    return genres.stream().anyMatch(g -> preferredGenres.contains(g.getName()));
+                    try {
+                        Film film = filmRepository.findById(Integer.parseInt(movieId)).orElse(null);
+                        if (film == null) return false;
+                        Set<Genre> genres = film.getGenres();
+                        return genres.stream().anyMatch(g -> preferredGenres.contains(g.getName()));
+                    } catch (NumberFormatException e) {
+                        return false;
+                    }
                 })
                 .limit(maxRecommendations)
                 .collect(Collectors.toList());
     }
+
+    // Вспомогательный метод для получения популярных фильмов
+    private List<String> getPopularFilmsByGenres(List<String> preferredGenres, int maxRecommendations) {
+        // Если жанры не указаны, возвращаем просто популярные фильмы
+        if (preferredGenres == null || preferredGenres.isEmpty()) {
+            return filmRepository.findAll().stream()
+                    .sorted((f1, f2) -> Double.compare(f2.getPopularity() != null ? f2.getPopularity() : 0.0,
+                            f1.getPopularity() != null ? f1.getPopularity() : 0.0))
+                    .limit(maxRecommendations)
+                    .map(film -> String.valueOf(film.getId()))
+                    .collect(Collectors.toList());
+        }
+
+        // Возвращаем популярные фильмы указанных жанров
+        return filmRepository.findAll().stream()
+                .filter(film -> film.getGenres().stream()
+                        .anyMatch(genre -> preferredGenres.contains(genre.getName())))
+                .sorted((f1, f2) -> Double.compare(f2.getPopularity() != null ? f2.getPopularity() : 0.0,
+                        f1.getPopularity() != null ? f1.getPopularity() : 0.0))
+                .limit(maxRecommendations)
+                .map(film -> String.valueOf(film.getId()))
+                .collect(Collectors.toList());
+    }
+
+    // ИСПРАВЛЕННЫЙ метод получения жанров пользователя
     public Set<Genre> getUserGenres(String userId) {
+        try {
+            Long userIdLong = Long.valueOf(userId);
 
-        Pageable pageable = PageRequest.of(0, 10, Sort.by("date"));
-        Page<WatchHistory> watchHistories = watchHistoryRepository.findAll(pageable);
-        Set<Genre> genres = new HashSet<>();
+            // Получаем историю просмотров конкретного пользователя
+            List<WatchHistory> watchHistories = watchHistoryRepository.findByUserId(userIdLong);
 
-        watchHistories.get().map(historySlot ->{
-            Film film = filmRepository.findById(Math.toIntExact(historySlot.getFilmId())).orElse(null);
-            Set<Genre> filmsGenres = film.getGenres();
+            if (watchHistories.isEmpty()) {
+                return new HashSet<>(); // Возвращаем пустой набор, если нет истории
+            }
+
+            Set<Genre> genres = new HashSet<>();
+
+            // Собираем жанры из всех просмотренных фильмов
+            for (WatchHistory history : watchHistories) {
+                Film film = filmRepository.findById(Math.toIntExact(history.getFilmId())).orElse(null);
+                if (film != null && film.getGenres() != null) {
+                    genres.addAll(film.getGenres());
+                }
+            }
+
             return genres;
-        }).forEach(genres::addAll);
-        return genres;
+        } catch (NumberFormatException e) {
+            System.err.println("Invalid userId format: " + userId);
+            return new HashSet<>();
+        } catch (Exception e) {
+            System.err.println("Error getting user genres: " + e.getMessage());
+            return new HashSet<>();
+        }
     }
 }

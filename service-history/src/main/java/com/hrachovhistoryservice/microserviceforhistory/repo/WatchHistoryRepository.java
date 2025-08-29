@@ -12,4 +12,7 @@ public interface WatchHistoryRepository  extends JpaRepository<WatchHistory, Int
     List<WatchHistory> findByUserIdOrderByDateDesc(Long userId);
 
     WatchHistory findByUserIdAndFilmId(Long userId, Long filmId);
+    // Add this method for getting user's watch history
+    List<WatchHistory> findByUserId(Long userId);
+
 }
