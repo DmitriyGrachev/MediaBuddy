@@ -105,6 +105,15 @@ The application will be available at: http://localhost:8080
 
 🐇 RabbitMQ Management UI	http://localhost:15672
 
+### Elasticsearch Setup
+Before using the search functionality, you need to reindex films with an admin role:
+
+GET http://localhost:8080/api/search/films/reindex
+
+pgsql
+Копировать код
+> Make sure you are logged in as an admin user to perform this operation.
+
 ## 📂 Project Structure
 
 . 
