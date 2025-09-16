@@ -110,10 +110,6 @@ Before using the search functionality, you need to reindex films with an admin r
 
 GET http://localhost:8080/api/search/films/reindex
 
-pgsql
-Копировать код
-> Make sure you are logged in as an admin user to perform this operation.
-
 ## 📂 Project Structure
 
 . 
